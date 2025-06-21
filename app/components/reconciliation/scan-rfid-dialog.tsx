@@ -265,9 +265,9 @@ export function ScanRfidDialog({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[800px] p-0 overflow-hidden">
         <AlertDialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b">
-          <AlertDialogTitle className="text-lg sm:text-xl">Manual RFID Entry</AlertDialogTitle>
+          <AlertDialogTitle className="text-lg sm:text-xl">Scan RFID Tags</AlertDialogTitle>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Enter RFID tags and press Enter to move to next row
+            Place RFID tags within range of the scanner
           </p>
         </AlertDialogHeader>
 
@@ -306,7 +306,7 @@ export function ScanRfidDialog({
                               }}
                               data-row={index}
                               placeholder="Enter RFID"
-                              className="w-full px-2 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 focus:outline-none rounded"
+                              className="w-full px-2 py-1 text-xs border-0 focus:ring-1 focus:ring-orange-500 focus:outline-none rounded"
                               disabled={isFetching}
                             />
                           </td>
@@ -388,7 +388,7 @@ export function ScanRfidDialog({
                           }}
                           data-mobile-row={index}
                           placeholder="Enter RFID"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
                           disabled={isFetching}
                         />
                       </div>
@@ -432,14 +432,14 @@ export function ScanRfidDialog({
 
             {/* Fetch Progress */}
             {isFetching && (
-              <div className="space-y-2 bg-blue-50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-blue-700">
+              <div className="space-y-2 bg-orange-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-orange-700">
                   <LoaderIcon className="h-4 w-4 animate-spin" />
                   Fetching assets... {fetchProgress}%
                 </div>
-                <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                    className="h-full bg-orange-500 transition-all duration-300 ease-out"
                     style={{ width: `${fetchProgress}%` }}
                   />
                 </div>
@@ -487,7 +487,7 @@ export function ScanRfidDialog({
                 <Button 
                   size="sm" 
                   onClick={handleSaveBundle} 
-                  className="bg-green-500 hover:bg-green-600 w-full sm:w-auto order-1 sm:order-2"
+                  className=" hover:bg-orange-600 w-full sm:w-auto order-1 sm:order-2"
                 >
                   Save Bundle ({scannedItems.length} items)
                 </Button>

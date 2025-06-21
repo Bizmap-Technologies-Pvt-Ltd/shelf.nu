@@ -141,7 +141,7 @@ export default function AssetsReconciliation() {
             icon="scan"
             data-test-id="scanItems"
           >
-            Scan RFID Tags
+            Scan Assets
           </Button>
         </div>
       </Header>
