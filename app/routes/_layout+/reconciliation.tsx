@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import type { ShouldRevalidateFunctionArgs } from "@remix-run/react";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, Link } from "@remix-run/react";
 import { scannedItemsAtom, type ScannedRfidItem } from "~/atoms/rfid-scanner";
 import { useAtom } from "jotai";
 import Header from "~/components/layout/header";
@@ -20,6 +20,10 @@ import { PermissionAction, PermissionEntity } from "~/utils/permissions/permissi
 export const meta: MetaFunction = () => [
   { title: appendToMetaTitle("Assets Reconciliation") },
 ];
+
+export const handle = {
+  breadcrumb: () => <Link to="/reconciliation">Assets Reconciliation</Link>,
+};
 
 export function shouldRevalidate({
   actionResult,
