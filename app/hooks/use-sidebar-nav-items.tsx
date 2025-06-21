@@ -16,6 +16,7 @@ import {
   SettingsIcon,
   TagsIcon,
   UsersRoundIcon,
+  WifiIcon,
   type LucideIcon,
 } from "lucide-react";
 import { UpgradeMessage } from "~/components/marketing/upgrade-message";
@@ -110,12 +111,11 @@ export function useSidebarNavItems() {
       title: "Assets",
       to: "/assets",
       Icon: PackageOpenIcon,
-    },
-    {
+    },    {
       type: "child",
       title: "Assets Reconciliation",
       to: "/reconciliation",
-      Icon: ChartNoAxesCombinedIcon,
+      Icon: WifiIcon,
       hidden: isBaseOrSelfService,
     },
     {
