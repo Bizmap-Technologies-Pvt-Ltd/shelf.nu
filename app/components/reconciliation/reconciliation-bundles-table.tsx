@@ -9,10 +9,12 @@ export type ReconciliationBundle = {
   date: string;
   locationName: string;
   scannedBy: string;
+  scannedByEmail: string;
   totalItems: number;
   status: "Completed" | "In Progress";
   items: {
     rfidTag: string;
+    assetId: string;
     assetName: string;
     category: string;
     status: "Available" | "In Use";
@@ -85,9 +87,9 @@ export function ReconciliationBundlesTable({ bundles }: { bundles: Reconciliatio
                   </Td>
                   <Td className="px-4 py-3">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">Current User</div>
-                      <div className="text-xs text-gray-500 truncate" title={bundle.scannedBy}>
-                        {bundle.scannedBy}
+                      <div className="text-sm font-medium text-gray-900">{bundle.scannedBy}</div>
+                      <div className="text-xs text-gray-500 truncate" title={bundle.scannedByEmail}>
+                        {bundle.scannedByEmail}
                       </div>
                     </div>
                   </Td>
@@ -188,9 +190,9 @@ export function ReconciliationBundlesTable({ bundles }: { bundles: Reconciliatio
                   <UserIcon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-xs text-gray-500">Scanned By</div>
-                    <div className="text-sm font-medium text-gray-900">Current User</div>
-                    <div className="text-xs text-gray-500 truncate" title={bundle.scannedBy}>
-                      {bundle.scannedBy}
+                    <div className="text-sm font-medium text-gray-900">{bundle.scannedBy}</div>
+                    <div className="text-xs text-gray-500 truncate" title={bundle.scannedByEmail}>
+                      {bundle.scannedByEmail}
                     </div>
                   </div>
                 </div>

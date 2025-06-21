@@ -1,7 +1,9 @@
 import { Td, Th } from "~/components/table";
+import { Link } from "@remix-run/react";
 
 export type AssetReconciliationItem = {
   rfidTag: string;
+  assetId: string;
   assetName: string;
   category: string;
   status: "Available" | "In Use" | "Unknown";
@@ -29,7 +31,18 @@ export function AssetReconciliationTable({
           {items.map((item, index) => (
             <tr key={index} className={index !== items.length - 1 ? "border-b" : ""}>
               <Td>{item.rfidTag}</Td>
-              <Td>{item.assetName}</Td>
+              <Td>
+                {item.assetId !== "unknown" ? (
+                  <Link
+                    to={`/assets/${item.assetId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                  >
+                    {item.assetName}
+                  </Link>
+                ) : (
+                  <span className="text-gray-600">{item.assetName}</span>
+                )}
+              </Td>
               <Td>{item.category}</Td>
               <Td>
                 <span className={`inline-block px-2 py-0.5 text-sm font-medium rounded-full ${

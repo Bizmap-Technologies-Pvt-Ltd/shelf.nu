@@ -16,6 +16,7 @@ import { ReconciliationBundlesTable } from "~/components/reconciliation/reconcil
 import { useState, useCallback } from "react";
 import { requirePermission } from "~/utils/roles.server";
 import { PermissionAction, PermissionEntity } from "~/utils/permissions/permission.data";
+import { getUserByID } from "~/modules/user/service.server";
 
 export const meta: MetaFunction = () => [
   { title: appendToMetaTitle("Assets Reconciliation") },
@@ -47,10 +48,12 @@ type ReconciliationBundle = {
   date: string;
   locationName: string;
   scannedBy: string;
+  scannedByEmail: string;
   totalItems: number;
   status: "Completed" | "In Progress";
   items: {
     rfidTag: string;
+    assetId: string;
     assetName: string;
     category: string;
     status: "Available" | "In Use";
@@ -70,6 +73,9 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       action: PermissionAction.read,
     });
 
+    // Get current user information
+    const user = await getUserByID(userId);
+
     // In a real application, we would fetch this from a database
     const recentReconciliations: ReconciliationBundle[] = [];
 
@@ -80,6 +86,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       recentReconciliations,
       organizationId,
       userOrganizations,
+      currentUser: user,
     }));
   } catch (cause) {
     const shelfError = cause instanceof ShelfError ? cause : new ShelfError({
@@ -106,21 +113,40 @@ export default function AssetsReconciliation() {
     );
   }
   
-  const { header, recentReconciliations: initialBundles, organizationId, userOrganizations } = loaderData;
+  const { header, recentReconciliations: initialBundles, organizationId, userOrganizations, currentUser } = loaderData;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [scannedItems] = useAtom(scannedItemsAtom);
   const [bundles, setBundles] = useState<ReconciliationBundle[]>(initialBundles);
 
   const handleSaveBundle = (items: ScannedRfidItem[]) => {
+    // Create user display name from available user data
+    let userName = "Unknown User";
+    let userEmail = "unknown@example.com";
+    
+    if (currentUser) {
+      const firstName = currentUser.firstName || "";
+      const lastName = currentUser.lastName || "";
+      const fullName = `${firstName} ${lastName}`.trim();
+      userName = fullName || currentUser.email || "Unknown User";
+      userEmail = currentUser.email || "unknown@example.com";
+    }
+    
+    // Get location from the first asset, or default to "Unknown Location"
+    const firstAssetLocation = items.length > 0 && items[0].asset?.location 
+      ? items[0].asset.location 
+      : "Unknown Location";
+    
     const newBundle: ReconciliationBundle = {
       id: generateBundleId(),
       date: new Date().toISOString(),
-      locationName: "Main Storage",
-      scannedBy: "Current User",
+      locationName: firstAssetLocation,
+      scannedBy: userName,
+      scannedByEmail: userEmail,
       totalItems: items.length,
       status: "Completed",
       items: items.map(item => ({
         rfidTag: item.rfid,
+        assetId: item.asset?.id || "unknown",
         assetName: item.asset?.title || "Unknown Asset",
         category: item.asset?.category || "Uncategorized",
         status: item.asset?.status === "Available" ? "Available" : "In Use",

@@ -50,8 +50,13 @@ export function ScanRfidDialog({
 }) {
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [scannedItems, setScannedItems] = useState<AssetReconciliationItem[]>([]);
+  const [assetDataMap, setAssetDataMap] = useState<Map<string, AssetWithRfidData>>(new Map());
+  const [showScannedPreview, setShowScannedPreview] = useState(false);
+  const [isAddingMore, setIsAddingMore] = useState(false);
+  const [hasNewEntries, setHasNewEntries] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchProgress, setFetchProgress] = useState(0);
+  const [fetchProgressMessage, setFetchProgressMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const setGlobalScannedItems = useSetAtom(scannedItemsAtom);
@@ -75,8 +80,13 @@ export function ScanRfidDialog({
     if (!isOpen) {
       setManualEntries(createInitialRows());
       setScannedItems([]);
+      setAssetDataMap(new Map());
+      setShowScannedPreview(false);
+      setIsAddingMore(false);
+      setHasNewEntries(false);
       setIsFetching(false);
       setFetchProgress(0);
+      setFetchProgressMessage("");
       setCurrentPage(0);
       setFetchError(null);
     }
@@ -90,16 +100,48 @@ export function ScanRfidDialog({
   }, [isOpen]);
 
   const updateRfidTag = (id: string, value: string) => {
+    // Check if user is entering new RFID tags after having scanned items
+    if (scannedItems.length > 0 && value.trim() && !hasNewEntries) {
+      setHasNewEntries(true);
+    }
+
     setManualEntries(prev => {
-      // 1. Update the value on the edited row
-      const updated = prev.map(entry =>
-        entry.id === id ? { ...entry, rfidTag: value } : entry
+      // 1. Check if this RFID tag already exists in scanned items
+      const isDuplicate = value.trim() && scannedItems.some(item => 
+        item.rfidTag.toLowerCase() === value.trim().toLowerCase()
       );
 
-      // 2. Find the current entry index
+      // 2. Update the value on the edited row
+      const updated = prev.map(entry => {
+        if (entry.id === id) {
+          if (isDuplicate) {
+            return {
+              ...entry,
+              rfidTag: value,
+              assetName: "Already Scanned",
+              category: "Duplicate",
+              status: "Duplicate",
+              location: "Duplicate",
+            };
+          } else {
+            return {
+              ...entry,
+              rfidTag: value,
+              // Reset other fields when RFID changes (they'll be populated after fetch)
+              assetName: value.trim() ? "" : "",
+              category: value.trim() ? "" : "",
+              status: value.trim() ? "" : "",
+              location: value.trim() ? "" : "",
+            };
+          }
+        }
+        return entry;
+      });
+
+      // 3. Find the current entry index
       const currentIndex = prev.findIndex(entry => entry.id === id);
       
-      // 3. If this is one of the last 3 rows and has a value, add 5 more rows
+      // 4. If this is one of the last 3 rows and has a value, add 5 more rows
       if (currentIndex >= prev.length - 3 && value.trim()) {
         const moreRows = Array.from({ length: 5 }, (_, i) => {
           const idx = prev.length + i + 1;
@@ -123,6 +165,7 @@ export function ScanRfidDialog({
   const convertAssetToReconciliationItem = (asset: AssetWithRfidData): AssetReconciliationItem => {
     return {
       rfidTag: asset.rfid,
+      assetId: asset.id,
       assetName: asset.title,
       category: asset.category?.name || "Uncategorized",
       status: asset.status === "AVAILABLE" ? "Available" : "In Use",
@@ -133,6 +176,7 @@ export function ScanRfidDialog({
   const fetchAssets = async () => {
     setIsFetching(true);
     setFetchProgress(0);
+    setFetchProgressMessage("Preparing...");
     setFetchError(null);
 
     const validEntries = manualEntries.filter(entry => entry.rfidTag.trim());
@@ -143,7 +187,34 @@ export function ScanRfidDialog({
       return;
     }
 
+    // Filter out RFID tags that are already in our scanned items (for resume functionality)
+    const existingRfidTags = new Set(scannedItems.map(item => item.rfidTag.toLowerCase()));
+    const newRfidTags = rfidTags.filter(tag => !existingRfidTags.has(tag.toLowerCase()));
+    
+    if (newRfidTags.length === 0 && scannedItems.length > 0) {
+      setFetchError("All entered RFID tags have already been scanned. Please add new RFID tags.");
+      setIsFetching(false);
+      return;
+    }
+
+    // Only fetch tags that are truly new (not already scanned)
+    const tagsToFetch = newRfidTags;
+    
+    if (tagsToFetch.length === 0) {
+      setFetchError("No new RFID tags to fetch.");
+      setIsFetching(false);
+      return;
+    }
+
     try {
+      // Step 1: Preparing request (10%)
+      setFetchProgress(10);
+      setFetchProgressMessage("Preparing request...");
+      
+      // Step 2: Sending request (20%)
+      setFetchProgress(20);
+      setFetchProgressMessage("Sending request...");
+      
       // Send JSON data instead of FormData to properly handle arrays
       const response = await fetch("/api/assets/rfid", {
         method: "POST",
@@ -152,33 +223,48 @@ export function ScanRfidDialog({
         },
         body: JSON.stringify({
           intent: "batch-lookup",
-          rfidTags: rfidTags,
+          rfidTags: tagsToFetch,
         }),
       });
+
+      // Step 3: Request sent, waiting for response (40%)
+      setFetchProgress(40);
+      setFetchProgressMessage("Waiting for server response...");
 
       if (!response.ok) {
         const errorResult = await response.json();
         throw new Error(errorResult.error?.message || `Request failed with status ${response.status}`);
       }
 
+      // Step 4: Processing response (60%)
+      setFetchProgress(60);
+      setFetchProgressMessage("Processing response...");
+      
       const result = await response.json();
       const foundAssets: AssetWithRfidData[] = result.assets || [];
       
-      // Convert found assets to reconciliation items
-      const reconciliationItems: AssetReconciliationItem[] = [];
+      // Step 5: Processing assets (80%)
+      setFetchProgress(80);
+      setFetchProgressMessage("Processing asset data...");
+      
+      // Convert found assets to reconciliation items and store asset data
+      const newReconciliationItems: AssetReconciliationItem[] = [];
       const foundRfidTags = new Set(foundAssets.map(asset => asset.rfid.toLowerCase()));
+      const newAssetMap = new Map<string, AssetWithRfidData>();
 
       // Process found assets
       foundAssets.forEach(asset => {
         const reconciliationItem = convertAssetToReconciliationItem(asset);
-        reconciliationItems.push(reconciliationItem);
+        newReconciliationItems.push(reconciliationItem);
+        newAssetMap.set(asset.rfid.toLowerCase(), asset);
       });
 
       // Handle missing assets (RFIDs that weren't found)
-      rfidTags.forEach(rfid => {
+      tagsToFetch.forEach(rfid => {
         if (!foundRfidTags.has(rfid.toLowerCase())) {
-          reconciliationItems.push({
+          newReconciliationItems.push({
             rfidTag: rfid,
+            assetId: "unknown",
             assetName: "Asset Not Found",
             category: "Unknown",
             status: "Unknown",
@@ -187,14 +273,25 @@ export function ScanRfidDialog({
         }
       });
 
-      // Update both scanned items and manual entries
-      setScannedItems(reconciliationItems);
+      // Step 6: Updating UI (95%)
+      setFetchProgress(95);
+      setFetchProgressMessage("Updating interface...");
+      
+      // CRITICAL FIX: Properly merge with existing scanned items
+      // Don't replace existing scanned items, only append new ones
+      const allReconciliationItems = [...scannedItems, ...newReconciliationItems];
+      const mergedAssetMap = new Map([...assetDataMap, ...newAssetMap]);
+      
+      // Update scanned items and asset data map
+      setScannedItems(allReconciliationItems);
+      setAssetDataMap(mergedAssetMap);
       
       // Update manual entries with found asset data
       setManualEntries(prev => {
         const updated = prev.map(entry => {
           if (!entry.rfidTag.trim()) return entry;
           
+          // Check if this RFID was found in the current fetch
           const foundAsset = foundAssets.find(asset => {
             return asset.rfid.toLowerCase() === entry.rfidTag.trim().toLowerCase();
           });
@@ -208,20 +305,34 @@ export function ScanRfidDialog({
               location: foundAsset.location?.name || "No Location",
             };
           } else {
-            return {
-              ...entry,
-              assetName: "Asset Not Found",
-              category: "Unknown",
-              status: "Unknown",
-              location: "Unknown",
-            };
+            // Only mark as "Asset Not Found" if it was in the tags we fetched
+            if (tagsToFetch.some(tag => tag.toLowerCase() === entry.rfidTag.trim().toLowerCase())) {
+              return {
+                ...entry,
+                assetName: "Asset Not Found",
+                category: "Unknown",
+                status: "Unknown",
+                location: "Unknown",
+              };
+            }
+            // If it wasn't in the fetch, keep the existing data unchanged
+            return entry;
           }
         });
         
         return updated;
       });
 
+      // Step 7: Complete (100%)
       setFetchProgress(100);
+      setFetchProgressMessage("Complete!");
+      
+      // Reset adding more state and new entries flag after successful fetch
+      setIsAddingMore(false);
+      setHasNewEntries(false);
+      
+      // Small delay to show completion before hiding
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to fetch assets";
       setFetchError(errorMessage);
@@ -232,16 +343,26 @@ export function ScanRfidDialog({
   };
 
   const handleSaveBundle = () => {
-    const items: ScannedRfidItem[] = scannedItems.map(item => ({
-      rfid: item.rfidTag,
-      asset: {
-        id: item.rfidTag,
-        title: item.assetName,
-        category: item.category,
-        status: item.status,
-        location: item.location,
-      },
-    }));
+    const items: ScannedRfidItem[] = scannedItems.map(item => {
+      const assetData = assetDataMap.get(item.rfidTag.toLowerCase());
+      
+      return {
+        rfid: item.rfidTag,
+        asset: assetData ? {
+          id: assetData.id,
+          title: assetData.title,
+          category: assetData.category?.name || "Uncategorized",
+          status: assetData.status === "AVAILABLE" ? "Available" : "In Use",
+          location: assetData.location?.name || "No Location",
+        } : {
+          id: "unknown",
+          title: item.assetName,
+          category: item.category,
+          status: item.status,
+          location: item.location,
+        },
+      };
+    });
 
     onSave(items);
     setGlobalScannedItems(items);
@@ -253,10 +374,26 @@ export function ScanRfidDialog({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[800px] p-0 overflow-hidden">
         <AlertDialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b">
-          <AlertDialogTitle className="text-lg sm:text-xl">Scan RFID Tags</AlertDialogTitle>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Place RFID tags within range of the scanner
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex-1">
+              <AlertDialogTitle className="text-lg sm:text-xl">
+                {scannedItems.length > 0 && !hasNewEntries 
+                  ? `Assets Scanned (${scannedItems.length})` 
+                  : hasNewEntries 
+                  ? "Add More RFID Tags" 
+                  : "Scan RFID Tags"
+                }
+              </AlertDialogTitle>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                {scannedItems.length > 0 && !hasNewEntries
+                  ? "Assets successfully scanned and ready to save."
+                  : hasNewEntries 
+                  ? "Enter additional RFID tags to add to your current bundle"
+                  : "Place RFID tags within range of the scanner"
+                }
+              </p>
+            </div>
+          </div>
         </AlertDialogHeader>
 
         <div className="flex-1 overflow-hidden px-4 py-3 sm:px-6 sm:py-4">
@@ -309,11 +446,14 @@ export function ScanRfidDialog({
                             </div>
                           </td>
                           <td className="px-3 py-2 text-xs text-gray-500 border-r">
-                            {entry.status ? (                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          entry.status === 'Available' ? 'bg-green-100 text-green-800' : 
-                          entry.status === 'In Use' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
+                            {entry.status ? (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                entry.status === 'Available' ? 'bg-green-100 text-green-800' : 
+                                entry.status === 'In Use' ? 'bg-yellow-100 text-yellow-800' :
+                                entry.status === 'Duplicate' ? 'bg-blue-100 text-blue-800' :
+                                entry.status === 'Unknown' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
                                 {entry.status}
                               </span>
                             ) : "-"}
@@ -340,6 +480,8 @@ export function ScanRfidDialog({
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           entry.status === 'Available' ? 'bg-green-100 text-green-800' : 
                           entry.status === 'In Use' ? 'bg-yellow-100 text-yellow-800' :
+                          entry.status === 'Duplicate' ? 'bg-blue-100 text-blue-800' :
+                          entry.status === 'Unknown' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {entry.status}
@@ -418,12 +560,48 @@ export function ScanRfidDialog({
               </div>
             </div>
 
+            {/* Scanned Items Summary */}
+            {scannedItems.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-green-700">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium">
+                      {scannedItems.length} asset{scannedItems.length === 1 ? '' : 's'} scanned successfully
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowScannedPreview(!showScannedPreview)}
+                    className="text-xs text-green-600 hover:text-green-800 h-6 px-2"
+                  >
+                    {showScannedPreview ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+                <p className="text-xs text-green-600 mt-1">
+                  You can save this bundle or resume scanning to add more items.
+                </p>
+                {showScannedPreview && (
+                  <div className="mt-3 border-t border-green-200 pt-3">
+                    <div className="text-xs font-medium text-green-700 mb-2">Scanned Assets:</div>
+                    <div className="max-h-40 overflow-auto">
+                      <AssetReconciliationTable items={scannedItems} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Fetch Progress */}
             {isFetching && (
               <div className="space-y-2 bg-orange-50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-orange-700">
-                  <LoaderIcon className="h-4 w-4 animate-spin" />
-                  Fetching assets... {fetchProgress}%
+                <div className="flex items-center justify-between text-sm text-orange-700">
+                  <div className="flex items-center gap-2">
+                    <LoaderIcon className="h-4 w-4 animate-spin" />
+                    <span>{fetchProgressMessage || "Fetching assets..."}</span>
+                  </div>
+                  <span className="font-medium">{fetchProgress}%</span>
                 </div>
                 <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
                   <div
@@ -454,31 +632,41 @@ export function ScanRfidDialog({
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 border-t">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onClose}
-                className="w-full sm:w-auto order-2 sm:order-1"
-              >
-                Cancel
-              </Button>
-              {!isFetching && scannedItems.length === 0 ? (
-                <Button
-                  size="sm"
-                  onClick={fetchAssets}
-                  disabled={!manualEntries.some(e => e.rfidTag.trim())}
-                  className="w-full sm:w-auto order-1 sm:order-2"
-                >
-                  Fetch Assets
-                </Button>
-              ) : scannedItems.length > 0 ? (
-                <Button 
-                  size="sm" 
-                  onClick={handleSaveBundle} 
-                  className=" hover:bg-orange-600 w-full sm:w-auto order-1 sm:order-2"
-                >
-                  Save Bundle ({scannedItems.length} items)
-                </Button>
+              {!isFetching ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={onClose}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  
+                  {/* Show Fetch button when: no items scanned OR user has entered new RFID tags */}
+                  {(scannedItems.length === 0 || hasNewEntries) && (
+                    <Button
+                      size="sm"
+                      onClick={fetchAssets}
+                      disabled={!manualEntries.some(e => e.rfidTag.trim())}
+                      className="w-full sm:w-auto"
+                    >
+                      {scannedItems.length === 0 ? "Fetch Assets" : "Fetch New Assets"}
+                    </Button>
+                  )}
+                  
+                  {/* Show Save Bundle button when items are scanned and no new entries */}
+                  {scannedItems.length > 0 && !hasNewEntries && (
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveBundle} 
+                      className="hover:bg-orange-600 w-full sm:w-auto"
+                    >
+                      <span className="hidden sm:inline">Save Bundle ({scannedItems.length})</span>
+                      <span className="sm:hidden">Save ({scannedItems.length})</span>
+                    </Button>
+                  )}
+                </>
               ) : null}
             </div>
           </div>
