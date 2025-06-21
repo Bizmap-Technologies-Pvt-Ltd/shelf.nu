@@ -9,10 +9,13 @@ import type { HeaderData } from "~/components/layout/header/types";
 import { Button } from "~/components/shared/button";
 import { ListContentWrapper } from "~/components/list/content-wrapper";
 import { appendToMetaTitle } from "~/utils/append-to-meta-title";
-import { data } from "~/utils/http.server";
+import { data, error } from "~/utils/http.server";
+import { ShelfError } from "~/utils/error";
 import { ScanRfidDialog } from "~/components/reconciliation/scan-rfid-dialog";
 import { ReconciliationBundlesTable } from "~/components/reconciliation/reconciliation-bundles-table";
 import { useState, useCallback } from "react";
+import { requirePermission } from "~/utils/roles.server";
+import { PermissionAction, PermissionEntity } from "~/utils/permissions/permission.data";
 
 export const meta: MetaFunction = () => [
   { title: appendToMetaTitle("Assets Reconciliation") },
@@ -51,20 +54,55 @@ type ReconciliationBundle = {
   }[];
 };
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  // In a real application, we would fetch this from a database
-  const recentReconciliations: ReconciliationBundle[] = [];
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const authSession = context.getSession();
+  const { userId } = authSession;
 
-  return data({
-    header: {
-      title: "Assets Reconciliation",
-    } as HeaderData,
-    recentReconciliations,
-  });
+  try {
+    const { organizationId, userOrganizations } = await requirePermission({
+      userId,
+      request,
+      entity: PermissionEntity.asset,
+      action: PermissionAction.read,
+    });
+
+    // In a real application, we would fetch this from a database
+    const recentReconciliations: ReconciliationBundle[] = [];
+
+    return json(data({
+      header: {
+        title: "Assets Reconciliation",
+      } as HeaderData,
+      recentReconciliations,
+      organizationId,
+      userOrganizations,
+    }));
+  } catch (cause) {
+    const shelfError = cause instanceof ShelfError ? cause : new ShelfError({
+      cause,
+      message: "Failed to load reconciliation page",
+      additionalData: { userId },
+      label: "Assets",
+    });
+    return json(error(shelfError));
+  }
 }
 
 export default function AssetsReconciliation() {
-  const { header, recentReconciliations: initialBundles } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  
+  // Handle potential error state
+  if ('error' in loaderData && loaderData.error) {
+    return (
+      <div className="p-6">
+        <div className="text-red-600">
+          Error loading reconciliation page: {loaderData.error.message}
+        </div>
+      </div>
+    );
+  }
+  
+  const { header, recentReconciliations: initialBundles, organizationId, userOrganizations } = loaderData;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [scannedItems] = useAtom(scannedItemsAtom);
   const [bundles, setBundles] = useState<ReconciliationBundle[]>(initialBundles);
@@ -121,6 +159,8 @@ export default function AssetsReconciliation() {
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
           onSave={handleSaveBundle}
+          organizationId={organizationId}
+          userOrganizations={userOrganizations}
         />
       </div>
     </div>

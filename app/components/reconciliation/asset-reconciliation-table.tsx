@@ -4,7 +4,7 @@ export type AssetReconciliationItem = {
   rfidTag: string;
   assetName: string;
   category: string;
-  status: "Available" | "In Use";
+  status: "Available" | "In Use" | "Unknown";
   location: string;
 };
 
@@ -32,7 +32,11 @@ export function AssetReconciliationTable({
               <Td>{item.assetName}</Td>
               <Td>{item.category}</Td>
               <Td>
-                <span className="inline-block px-2 py-0.5 text-sm font-medium rounded-full bg-green-50 text-green-700">
+                <span className={`inline-block px-2 py-0.5 text-sm font-medium rounded-full ${
+                  item.status === 'Available' ? 'bg-green-50 text-green-700' :
+                  item.status === 'In Use' ? 'bg-yellow-50 text-yellow-700' :
+                  'bg-gray-50 text-gray-700'
+                }`}>
                   {item.status}
                 </span>
               </Td>

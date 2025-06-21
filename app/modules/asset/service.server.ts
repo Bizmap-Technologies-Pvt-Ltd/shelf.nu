@@ -194,6 +194,218 @@ export async function getAsset<T extends Prisma.AssetInclude | undefined>({
   }
 }
 
+/**
+ * Fetches an asset by its RFID tag
+ * @param params Object containing RFID tag and organization details
+ * @returns Asset with specified include fields or null if not found
+ */
+export async function getAssetByRfid<T extends Prisma.AssetInclude | undefined>({
+  rfid,
+  organizationId,
+  userOrganizations,
+  include,
+}: {
+  rfid: string;
+  organizationId: Asset["organizationId"];
+  userOrganizations?: Pick<UserOrganization, "organizationId">[];
+  include?: T;
+}): Promise<AssetWithInclude<T> | null> {
+  try {
+    if (!rfid || rfid.trim() === "") {
+      throw new ShelfError({
+        cause: null,
+        title: "Invalid RFID",
+        message: "RFID tag cannot be empty.",
+        additionalData: { rfid },
+        label,
+        status: 400,
+      });
+    }
+
+    const otherOrganizationIds = userOrganizations?.map(
+      (org) => org.organizationId
+    );
+
+    const asset = await db.asset.findFirst({
+      where: {
+        rfid: {
+          equals: rfid.trim(),
+          mode: "insensitive"
+        },
+        OR: [
+          { organizationId },
+          ...(userOrganizations?.length
+            ? [{ organizationId: { in: otherOrganizationIds } }]
+            : []),
+        ],
+      },
+      include: { ...include },
+    });
+
+    return asset as AssetWithInclude<T> | null;
+  } catch (cause) {
+    const isShelfError = isLikeShelfError(cause);
+    throw new ShelfError({
+      cause,
+      title: "Failed to fetch asset by RFID",
+      message: isShelfError
+        ? cause.message
+        : "An error occurred while fetching the asset by RFID tag.",
+      additionalData: {
+        rfid,
+        organizationId,
+        ...(isShelfError ? cause.additionalData : {}),
+      },
+      label,
+      shouldBeCaptured: isShelfError ? cause.shouldBeCaptured : true,
+    });
+  }
+}
+
+/**
+ * Fetches multiple assets by their RFID tags in batch
+ * @param params Object containing RFID tags array and organization details
+ * @returns Array of assets with their RFID tags
+ */
+export async function getAssetsByRfidBatch<T extends Prisma.AssetInclude | undefined>({
+  rfidTags,
+  organizationId,
+  userOrganizations,
+  include,
+}: {
+  rfidTags: string[];
+  organizationId: Asset["organizationId"];
+  userOrganizations?: Pick<UserOrganization, "organizationId">[];
+  include?: T;
+}): Promise<(AssetWithInclude<T> & { rfid: string })[]> {
+  try {
+    if (!rfidTags || rfidTags.length === 0) {
+      return [];
+    }
+
+    // Filter out empty RFID tags and trim whitespace
+    const validRfidTags = rfidTags
+      .map(tag => tag?.trim())
+      .filter(tag => tag && tag !== "");
+
+    if (validRfidTags.length === 0) {
+      return [];
+    }
+
+    console.log("getAssetsByRfidBatch - validRfidTags:", validRfidTags);
+    console.log("getAssetsByRfidBatch - organizationId:", organizationId);
+
+    const otherOrganizationIds = userOrganizations?.map(
+      (org) => org.organizationId
+    );
+
+    const assets = await db.asset.findMany({
+      where: {
+        OR: validRfidTags.map(tag => ({
+          rfid: {
+            equals: tag,
+            mode: "insensitive"
+          }
+        })),
+        AND: {
+          OR: [
+            { organizationId },
+            ...(userOrganizations?.length
+              ? [{ organizationId: { in: otherOrganizationIds } }]
+              : []),
+          ],
+        },
+      },
+      include: { ...include },
+    });
+
+    console.log("getAssetsByRfidBatch - found assets:", assets.length);
+    console.log("getAssetsByRfidBatch - assets:", assets.map(a => ({ id: a.id, title: a.title, rfid: a.rfid })));
+
+    // Type assertion since we know rfid is not null due to our where clause
+    return assets as (AssetWithInclude<T> & { rfid: string })[];
+  } catch (cause) {
+    throw new ShelfError({
+      cause,
+      title: "Failed to fetch assets by RFID batch",
+      message: "An error occurred while fetching assets by RFID tags.",
+      additionalData: {
+        rfidTags,
+        organizationId,
+      },
+      label,
+    });
+  }
+}
+
+/**
+ * Checks if an RFID tag is already in use within the organization
+ * @param params Object containing RFID tag and organization details
+ * @returns Boolean indicating if RFID is available, and existing asset info if taken
+ */
+export async function checkRfidAvailability({
+  rfid,
+  organizationId,
+  excludeAssetId,
+}: {
+  rfid: string;
+  organizationId: Asset["organizationId"];
+  excludeAssetId?: Asset["id"];
+}): Promise<{
+  isAvailable: boolean;
+  existingAsset?: Pick<Asset, "id" | "title"> | null;
+}> {
+  try {
+    if (!rfid || rfid.trim() === "") {
+      throw new ShelfError({
+        cause: null,
+        title: "Invalid RFID",
+        message: "RFID tag cannot be empty.",
+        additionalData: { rfid },
+        label,
+        status: 400,
+      });
+    }
+
+    const existingAsset = await db.asset.findFirst({
+      where: {
+        rfid: {
+          equals: rfid.trim(),
+          mode: "insensitive"
+        },
+        organizationId,
+        ...(excludeAssetId && { id: { not: excludeAssetId } }),
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
+
+    return {
+      isAvailable: !existingAsset,
+      existingAsset,
+    };
+  } catch (cause) {
+    const isShelfError = isLikeShelfError(cause);
+    throw new ShelfError({
+      cause,
+      title: "Failed to check RFID availability",
+      message: isShelfError
+        ? cause.message
+        : "An error occurred while checking RFID availability.",
+      additionalData: {
+        rfid,
+        organizationId,
+        excludeAssetId,
+        ...(isShelfError ? cause.additionalData : {}),
+      },
+      label,
+      shouldBeCaptured: isShelfError ? cause.shouldBeCaptured : true,
+    });
+  }
+}
+
 /** This is used by both  getAssetsFromView & getAssets
  * Those are the statuses that are considered unavailable for booking assets
  */

@@ -10,12 +10,20 @@ import { useSetAtom } from "jotai";
 import { scannedItemsAtom, type ScannedRfidItem } from "~/atoms/rfid-scanner";
 import { AssetReconciliationTable, type AssetReconciliationItem } from "./asset-reconciliation-table";
 import { XIcon, PlusIcon, LoaderIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import type { Asset, Category, Location, Tag, TeamMember, User, Kit, Custody, UserOrganization } from "@prisma/client";
 
-// Fake asset data for demonstration
-const FAKE_ASSETS = {
-  categories: ["Electronics", "Furniture", "Office Supplies", "Tools", "IT Equipment"],
-  locations: ["Warehouse A", "Warehouse B", "Office Floor 1", "Office Floor 2", "Storage Room"],
-  statuses: ["Available", "In Use"] as const,
+// Type for asset data returned from RFID service
+type AssetWithRfidData = Asset & {
+  category?: Category | null;
+  location?: Location | null;
+  tags?: Tag[];
+  custody?: (Custody & {
+    custodian: TeamMember & {
+      user: User;
+    };
+  }) | null;
+  kit?: Kit | null;
+  rfid: string;
 };
 
 type ManualEntry = {
@@ -31,16 +39,21 @@ export function ScanRfidDialog({
   isOpen,
   onClose,
   onSave,
+  organizationId,
+  userOrganizations,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (items: ScannedRfidItem[]) => void;
+  organizationId: string;
+  userOrganizations?: Pick<UserOrganization, "organizationId">[];
 }) {
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [scannedItems, setScannedItems] = useState<AssetReconciliationItem[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchProgress, setFetchProgress] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const setGlobalScannedItems = useSetAtom(scannedItemsAtom);
   
   // No pagination needed for mobile - show all entries in a scrollable view
@@ -65,6 +78,7 @@ export function ScanRfidDialog({
       setIsFetching(false);
       setFetchProgress(0);
       setCurrentPage(0);
+      setFetchError(null);
     }
   }, [isOpen]);
 
@@ -106,50 +120,127 @@ export function ScanRfidDialog({
     });
   };
 
-  const generateFakeAsset = (rfidTag: string): AssetReconciliationItem => {
-    const randomItem = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
-
+  const convertAssetToReconciliationItem = (asset: AssetWithRfidData): AssetReconciliationItem => {
     return {
-      rfidTag,
-      assetName: `Asset ${rfidTag}`,
-      category: randomItem(FAKE_ASSETS.categories),
-      status: randomItem(FAKE_ASSETS.statuses),
-      location: randomItem(FAKE_ASSETS.locations),
+      rfidTag: asset.rfid,
+      assetName: asset.title,
+      category: asset.category?.name || "Uncategorized",
+      status: asset.status === "AVAILABLE" ? "Available" : "In Use",
+      location: asset.location?.name || "No Location",
     };
   };
 
   const fetchAssets = async () => {
     setIsFetching(true);
     setFetchProgress(0);
+    setFetchError(null);
 
     const validEntries = manualEntries.filter(entry => entry.rfidTag.trim());
-    const totalEntries = validEntries.length;
+    const rfidTags = validEntries.map(entry => entry.rfidTag.trim());
 
-    // Simulate fetching assets with progress
-    for (let i = 0; i < totalEntries; i++) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-      const fakeAsset = generateFakeAsset(validEntries[i].rfidTag);
-
-      // Update both scanned items and manual entries
-      setScannedItems(prev => [...prev, fakeAsset]);
-      setManualEntries(prev =>
-        prev.map(entry =>
-          entry.rfidTag === validEntries[i].rfidTag
-            ? {
-              ...entry,
-              assetName: fakeAsset.assetName,
-              category: fakeAsset.category,
-              status: fakeAsset.status,
-              location: fakeAsset.location,
-            }
-            : entry
-        )
-      );
-
-      setFetchProgress(Math.round(((i + 1) / totalEntries) * 100));
+    if (rfidTags.length === 0) {
+      setIsFetching(false);
+      return;
     }
 
-    setIsFetching(false);
+    try {
+      console.log("Fetching assets for RFID tags:", rfidTags);
+      
+      // Send JSON data instead of FormData to properly handle arrays
+      const response = await fetch("/api/assets/rfid", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          intent: "batch-lookup",
+          rfidTags: rfidTags,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorResult = await response.json();
+        throw new Error(errorResult.error?.message || `Request failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API Response:", result);
+      const foundAssets: AssetWithRfidData[] = result.assets || [];
+      console.log("Found assets:", foundAssets);
+      
+      // Convert found assets to reconciliation items
+      const reconciliationItems: AssetReconciliationItem[] = [];
+      const foundRfidTags = new Set(foundAssets.map(asset => asset.rfid.toLowerCase()));
+
+      // Process found assets
+      foundAssets.forEach(asset => {
+        const reconciliationItem = convertAssetToReconciliationItem(asset);
+        reconciliationItems.push(reconciliationItem);
+      });
+
+      // Handle missing assets (RFIDs that weren't found)
+      rfidTags.forEach(rfid => {
+        if (!foundRfidTags.has(rfid.toLowerCase())) {
+          reconciliationItems.push({
+            rfidTag: rfid,
+            assetName: "Asset Not Found",
+            category: "Unknown",
+            status: "Unknown",
+            location: "Unknown",
+          });
+        }
+      });
+
+      // Update both scanned items and manual entries
+      setScannedItems(reconciliationItems);
+      
+      // Update manual entries with found asset data
+      console.log("Updating manual entries. Current entries:", manualEntries);
+      console.log("Found assets for update:", foundAssets);
+      
+      setManualEntries(prev => {
+        const updated = prev.map(entry => {
+          if (!entry.rfidTag.trim()) return entry;
+          
+          console.log(`Looking for asset with RFID: "${entry.rfidTag.trim()}" (lowercase: "${entry.rfidTag.trim().toLowerCase()}")`);
+          const foundAsset = foundAssets.find(asset => {
+            console.log(`Comparing with asset RFID: "${asset.rfid}" (lowercase: "${asset.rfid.toLowerCase()}")`);
+            return asset.rfid.toLowerCase() === entry.rfidTag.trim().toLowerCase();
+          });
+          
+          if (foundAsset) {
+            console.log(`Found matching asset for RFID ${entry.rfidTag}: ${foundAsset.title}`);
+            return {
+              ...entry,
+              assetName: foundAsset.title,
+              category: foundAsset.category?.name || "Uncategorized",
+              status: foundAsset.status === "AVAILABLE" ? "Available" : "In Use",
+              location: foundAsset.location?.name || "No Location",
+            };
+          } else {
+            console.log(`No matching asset found for RFID ${entry.rfidTag}`);
+            return {
+              ...entry,
+              assetName: "Asset Not Found",
+              category: "Unknown",
+              status: "Unknown",
+              location: "Unknown",
+            };
+          }
+        });
+        
+        console.log("Updated manual entries:", updated);
+        return updated;
+      });
+
+      setFetchProgress(100);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch assets";
+      setFetchError(errorMessage);
+      console.error("Error fetching assets by RFID:", error);
+    } finally {
+      setIsFetching(false);
+    }
   };
 
   const handleSaveBundle = () => {
@@ -230,10 +321,11 @@ export function ScanRfidDialog({
                             </div>
                           </td>
                           <td className="px-3 py-2 text-xs text-gray-500 border-r">
-                            {entry.status ? (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                entry.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                              }`}>
+                            {entry.status ? (                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          entry.status === 'Available' ? 'bg-green-100 text-green-800' : 
+                          entry.status === 'In Use' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
                                 {entry.status}
                               </span>
                             ) : "-"}
@@ -258,7 +350,9 @@ export function ScanRfidDialog({
                       <span className="text-sm font-medium text-gray-500">#{entry.id}</span>
                       {entry.status && (
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          entry.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          entry.status === 'Available' ? 'bg-green-100 text-green-800' : 
+                          entry.status === 'In Use' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                           {entry.status}
                         </span>
@@ -349,6 +443,24 @@ export function ScanRfidDialog({
                     style={{ width: `${fetchProgress}%` }}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {fetchError && (
+              <div className="space-y-2 bg-red-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-red-700">
+                  <XIcon className="h-4 w-4" />
+                  Error fetching assets: {fetchError}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setFetchError(null)}
+                  className="text-xs"
+                >
+                  Dismiss
+                </Button>
               </div>
             )}
 
