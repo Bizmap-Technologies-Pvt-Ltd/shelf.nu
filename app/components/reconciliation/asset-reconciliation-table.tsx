@@ -14,10 +14,10 @@ export function AssetReconciliationTable({
   items: AssetReconciliationItem[];
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-lg bg-white">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b text-left">
+          <tr className="border-b text-left bg-white">
             <Th>RFID Tag</Th>
             <Th>Asset Name</Th>
             <Th>Category</Th>
@@ -26,12 +26,16 @@ export function AssetReconciliationTable({
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
-            <tr key={item.rfidTag} className="border-b">
+          {items.map((item, index) => (
+            <tr key={item.rfidTag} className={index !== items.length - 1 ? "border-b" : ""}>
               <Td>{item.rfidTag}</Td>
               <Td>{item.assetName}</Td>
               <Td>{item.category}</Td>
-              <Td>{item.status}</Td>
+              <Td>
+                <span className="inline-block px-2 py-0.5 text-sm font-medium rounded-full bg-green-50 text-green-700">
+                  {item.status}
+                </span>
+              </Td>
               <Td>{item.location}</Td>
             </tr>
           ))}

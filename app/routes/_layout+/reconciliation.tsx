@@ -2,7 +2,7 @@ import { json } from "@remix-run/node";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import type { ShouldRevalidateFunctionArgs } from "@remix-run/react";
 import { useLoaderData } from "@remix-run/react";
-import { scannedItemsAtom } from "~/atoms/rfid-scanner";
+import { scannedItemsAtom, type ScannedRfidItem } from "~/atoms/rfid-scanner";
 import { useAtom } from "jotai";
 import Header from "~/components/layout/header";
 import type { HeaderData } from "~/components/layout/header/types";
@@ -11,8 +11,8 @@ import { ListContentWrapper } from "~/components/list/content-wrapper";
 import { appendToMetaTitle } from "~/utils/append-to-meta-title";
 import { data } from "~/utils/http.server";
 import { ScanRfidDialog } from "~/components/reconciliation/scan-rfid-dialog";
-import { ReconciliationBundlesTable, type ReconciliationBundle } from "~/components/reconciliation/reconciliation-bundles-table";
-import { useState } from "react";
+import { ReconciliationBundlesTable } from "~/components/reconciliation/reconciliation-bundles-table";
+import { useState, useCallback } from "react";
 
 export const meta: MetaFunction = () => [
   { title: appendToMetaTitle("Assets Reconciliation") },
@@ -35,6 +35,22 @@ function generateBundleId() {
   return `REC-${dateStr}-${random}`;
 }
 
+type ReconciliationBundle = {
+  id: string;
+  date: string;
+  locationName: string;
+  scannedBy: string;
+  totalItems: number;
+  status: "Completed" | "In Progress";
+  items: {
+    rfidTag: string;
+    assetName: string;
+    category: string;
+    status: "Available" | "In Use";
+    location: string;
+  }[];
+};
+
 export async function loader({ request }: LoaderFunctionArgs) {
   // In a real application, we would fetch this from a database
   const recentReconciliations: ReconciliationBundle[] = [];
@@ -53,52 +69,60 @@ export default function AssetsReconciliation() {
   const [scannedItems] = useAtom(scannedItemsAtom);
   const [bundles, setBundles] = useState<ReconciliationBundle[]>(initialBundles);
 
-  const handleSaveBundle = () => {
-    if (scannedItems.length === 0) return;
-
+  const handleSaveBundle = (items: ScannedRfidItem[]) => {
     const newBundle: ReconciliationBundle = {
       id: generateBundleId(),
-      date: new Date().toLocaleString(),
-      locationName: "Warehouse A",
-      scannedBy: "user@example.com",
-      totalItems: scannedItems.length,
+      date: new Date().toISOString(),
+      locationName: "Main Storage",
+      scannedBy: "Current User",
+      totalItems: items.length,
       status: "Completed",
-      items: scannedItems.map(item => ({
+      items: items.map(item => ({
         rfidTag: item.rfid,
-        assetName: item.asset?.title || 'Unknown Asset',
-        category: item.asset?.category || 'Uncategorized',
-        status: (item.asset?.status as "Available" | "In Use") || 'Available',
-        location: item.asset?.location || 'Unknown Location'
+        assetName: item.asset?.title || "Unknown Asset",
+        category: item.asset?.category || "Uncategorized",
+        status: item.asset?.status === "Available" ? "Available" : "In Use",
+        location: item.asset?.location || "Unknown"
       }))
     };
-
-    setBundles(prev => [newBundle, ...prev]);
-    setIsDialogOpen(false);
+    
+    setBundles((prev) => [newBundle, ...prev]);
   };
 
   return (
-    <div>
-      <Header
-        title={header.title}
-        slots={{
-          "right-of-title": (
-            <Button onClick={() => setIsDialogOpen(true)}>Scan Items</Button>
-          ),
-        }}
-      />
+    <div className="relative">
+      <Header>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600"
+            icon="scan"
+            data-test-id="scanItems"
+          >
+            Scan RFID Tags
+          </Button>
+        </div>
+      </Header>
 
-      <ListContentWrapper>
-        <h2 className="text-lg font-semibold mb-2">Recent Reconciliations</h2>
-        <p className="text-gray-600 mb-4">{bundles.length} reconciliation bundles</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-5 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Recent Reconciliations</h2>
+            <p className="mt-1 text-sm text-gray-500">{bundles.length} reconciliation bundles</p>
+          </div>
 
-        <ReconciliationBundlesTable bundles={bundles} />
+          <div className="px-6 py-6">
+            <ReconciliationBundlesTable bundles={bundles} />
+          </div>
+        </div>
 
         <ScanRfidDialog
+          key={isDialogOpen ? 'open' : 'closed'}
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
           onSave={handleSaveBundle}
         />
-      </ListContentWrapper>
+      </div>
     </div>
   );
 }
