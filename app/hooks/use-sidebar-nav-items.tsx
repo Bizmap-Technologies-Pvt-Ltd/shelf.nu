@@ -113,6 +113,13 @@ export function useSidebarNavItems() {
     },
     {
       type: "child",
+      title: "Assets Reconciliation",
+      to: "/reconciliation",
+      Icon: ChartNoAxesCombinedIcon,
+      hidden: isBaseOrSelfService,
+    },
+    {
+      type: "child",
       title: "Kits",
       to: "/kits",
       Icon: BriefcaseConveyorBeltIcon,
