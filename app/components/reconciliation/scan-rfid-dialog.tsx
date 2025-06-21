@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { useSetAtom } from "jotai";
 import { scannedItemsAtom, type ScannedRfidItem } from "~/atoms/rfid-scanner";
 import { AssetReconciliationTable, type AssetReconciliationItem } from "./asset-reconciliation-table";
-import { XIcon, PlusIcon, LoaderIcon } from "lucide-react";
+import { XIcon, PlusIcon, LoaderIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 // Fake asset data for demonstration
 const FAKE_ASSETS = {
@@ -36,8 +36,19 @@ export function ScanRfidDialog({
   onClose: () => void;
   onSave: (items: ScannedRfidItem[]) => void;
 }) {
-  // Initialize with 10 empty rows
-  const initialRows = Array.from({ length: 10 }, (_, i) => ({
+  const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
+  const [scannedItems, setScannedItems] = useState<AssetReconciliationItem[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchProgress, setFetchProgress] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const setGlobalScannedItems = useSetAtom(scannedItemsAtom);
+  
+  // No pagination needed for mobile - show all entries in a scrollable view
+  const ROWS_PER_PAGE = 5; // Keep for desktop compatibility
+  const totalPages = Math.ceil(manualEntries.length / ROWS_PER_PAGE);
+
+  // Initialize rows function
+  const createInitialRows = () => Array.from({ length: 10 }, (_, i) => ({
     id: (i + 1).toString().padStart(2, '0'),
     rfidTag: "",
     assetName: "",
@@ -46,33 +57,58 @@ export function ScanRfidDialog({
     location: "",
   }));
 
-  const [manualEntries, setManualEntries] = useState<ManualEntry[]>(initialRows);
-  const [scannedItems, setScannedItems] = useState<AssetReconciliationItem[]>([]);
-  const [isFetching, setIsFetching] = useState(false);
-  const [fetchProgress, setFetchProgress] = useState(0);
-  const setGlobalScannedItems = useSetAtom(scannedItemsAtom);
-
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setManualEntries(initialRows);
+      setManualEntries(createInitialRows());
       setScannedItems([]);
       setIsFetching(false);
       setFetchProgress(0);
+      setCurrentPage(0);
+    }
+  }, [isOpen]);
+
+  // Initialize state on first open
+  useEffect(() => {
+    if (isOpen && manualEntries.length === 0) {
+      setManualEntries(createInitialRows());
     }
   }, [isOpen]);
 
   const updateRfidTag = (id: string, value: string) => {
-    setManualEntries(prev =>
-      prev.map(entry =>
+    setManualEntries(prev => {
+      // 1. Update the value on the edited row
+      const updated = prev.map(entry =>
         entry.id === id ? { ...entry, rfidTag: value } : entry
-      )
-    );
+      );
+
+      // 2. Find the current entry index
+      const currentIndex = prev.findIndex(entry => entry.id === id);
+      
+      // 3. If this is one of the last 3 rows and has a value, add 5 more rows
+      if (currentIndex >= prev.length - 3 && value.trim()) {
+        const moreRows = Array.from({ length: 5 }, (_, i) => {
+          const idx = prev.length + i + 1;
+          return {
+            id: idx.toString().padStart(2, '0'),
+            rfidTag: "",
+            assetName: "",
+            category: "",
+            status: "",
+            location: "",
+          };
+        });
+        
+        return [...updated, ...moreRows];
+      }
+
+      return updated;
+    });
   };
 
   const generateFakeAsset = (rfidTag: string): AssetReconciliationItem => {
     const randomItem = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
-    
+
     return {
       rfidTag,
       assetName: `Asset ${rfidTag}`,
@@ -85,34 +121,34 @@ export function ScanRfidDialog({
   const fetchAssets = async () => {
     setIsFetching(true);
     setFetchProgress(0);
-    
+
     const validEntries = manualEntries.filter(entry => entry.rfidTag.trim());
     const totalEntries = validEntries.length;
-    
+
     // Simulate fetching assets with progress
     for (let i = 0; i < totalEntries; i++) {
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
       const fakeAsset = generateFakeAsset(validEntries[i].rfidTag);
-      
+
       // Update both scanned items and manual entries
       setScannedItems(prev => [...prev, fakeAsset]);
-      setManualEntries(prev => 
-        prev.map(entry => 
+      setManualEntries(prev =>
+        prev.map(entry =>
           entry.rfidTag === validEntries[i].rfidTag
             ? {
-                ...entry,
-                assetName: fakeAsset.assetName,
-                category: fakeAsset.category,
-                status: fakeAsset.status,
-                location: fakeAsset.location,
-              }
+              ...entry,
+              assetName: fakeAsset.assetName,
+              category: fakeAsset.category,
+              status: fakeAsset.status,
+              location: fakeAsset.location,
+            }
             : entry
         )
       );
-      
+
       setFetchProgress(Math.round(((i + 1) / totalEntries) * 100));
     }
-    
+
     setIsFetching(false);
   };
 
@@ -136,106 +172,215 @@ export function ScanRfidDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-4xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Manual RFID Entry</AlertDialogTitle>
-          <p className="text-sm text-gray-500">Enter RFID tags and press Enter to move to next row</p>
+      <AlertDialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[800px] p-0 overflow-hidden">
+        <AlertDialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b">
+          <AlertDialogTitle className="text-lg sm:text-xl">Manual RFID Entry</AlertDialogTitle>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            Enter RFID tags and press Enter to move to next row
+          </p>
         </AlertDialogHeader>
 
-        <div className="space-y-4">
-          {/* Excel-like Table */}
-          <div className="border rounded overflow-hidden bg-white">
-            <table className="w-full border-collapse table-fixed">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="w-12 px-2 py-1.5 text-left text-xs font-medium text-gray-500 border-b border-r">S.No</th>
-                  <th className="w-28 px-2 py-1.5 text-left text-xs font-medium text-gray-500 border-b border-r">RFID Tag</th>
-                  <th className="w-40 px-2 py-1.5 text-left text-xs font-medium text-gray-500 border-b border-r">Asset Name</th>
-                  <th className="w-28 px-2 py-1.5 text-left text-xs font-medium text-gray-500 border-b border-r">Category</th>
-                  <th className="w-24 px-2 py-1.5 text-left text-xs font-medium text-gray-500 border-b border-r">Status</th>
-                  <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-500 border-b">Location</th>
-                </tr>
-              </thead>
-              <tbody>
+        <div className="flex-1 overflow-hidden px-4 py-3 sm:px-6 sm:py-4">
+          <div className="space-y-3 sm:space-y-4 h-full flex flex-col">
+            
+            {/* Desktop Table View */}
+            <div className="hidden md:block flex-1 overflow-hidden">
+              <div className="border rounded-lg overflow-hidden bg-white h-full flex flex-col">
+                <div className="flex-1 overflow-auto">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="w-16 px-3 py-2 text-left text-xs font-medium text-gray-500 border-b border-r">S.No</th>
+                        <th className="w-32 px-3 py-2 text-left text-xs font-medium text-gray-500 border-b border-r">RFID Tag</th>
+                        <th className="min-w-[180px] px-3 py-2 text-left text-xs font-medium text-gray-500 border-b border-r">Asset Name</th>
+                        <th className="w-32 px-3 py-2 text-left text-xs font-medium text-gray-500 border-b border-r">Category</th>
+                        <th className="w-28 px-3 py-2 text-left text-xs font-medium text-gray-500 border-b border-r">Status</th>
+                        <th className="min-w-[140px] px-3 py-2 text-left text-xs font-medium text-gray-500 border-b">Location</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {manualEntries.map((entry, index) => (
+                        <tr key={entry.id} className="border-b hover:bg-gray-50 h-10">
+                          <td className="px-3 py-2 text-xs text-gray-500 border-r">{entry.id}</td>
+                          <td className="px-1 py-1 border-r">
+                            <input
+                              type="text"
+                              value={entry.rfidTag}
+                              onChange={(e) => updateRfidTag(entry.id, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && index < manualEntries.length - 1) {
+                                  const nextInput = document.querySelector(`input[data-row="${index + 1}"]`) as HTMLInputElement;
+                                  if (nextInput) nextInput.focus();
+                                }
+                              }}
+                              data-row={index}
+                              placeholder="Enter RFID"
+                              className="w-full px-2 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 focus:outline-none rounded"
+                              disabled={isFetching}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-500 border-r">
+                            <div className="truncate" title={entry.assetName}>
+                              {entry.assetName || "-"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-500 border-r">
+                            <div className="truncate" title={entry.category}>
+                              {entry.category || "-"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-500 border-r">
+                            {entry.status ? (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                entry.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {entry.status}
+                              </span>
+                            ) : "-"}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-500">
+                            <div className="truncate" title={entry.location}>
+                              {entry.location || "-"}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>            {/* Mobile Card View - Continuous Scroll */}
+            <div className="md:hidden flex-1 overflow-hidden">
+              <div className="h-full overflow-auto space-y-3 pb-4">
                 {manualEntries.map((entry, index) => (
-                  <tr key={entry.id} className="border-b hover:bg-gray-50">
-                    <td className="px-2 py-1 text-xs text-gray-500 border-r">{entry.id}</td>
-                    <td className="px-0.5 py-0.5 border-r">
-                      <input
-                        type="text"
-                        value={entry.rfidTag}
-                        onChange={(e) => updateRfidTag(entry.id, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && index < manualEntries.length - 1) {
-                            // Focus next row's input
-                            const nextInput = document.querySelector(`input[data-row="${index + 1}"]`) as HTMLInputElement;
-                            if (nextInput) nextInput.focus();
-                          }
-                        }}
-                        data-row={index}
-                        placeholder="Enter RFID"
-                        className="w-full px-1.5 py-0.5 text-xs border-0 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        disabled={isFetching}
-                      />
-                    </td>
-                    <td className="px-2 py-1 text-xs text-gray-500 border-r truncate">
-                      {entry.assetName || "-"}
-                    </td>
-                    <td className="px-2 py-1 text-xs text-gray-500 border-r truncate">
-                      {entry.category || "-"}
-                    </td>
-                    <td className="px-2 py-1 text-xs text-gray-500 border-r">
-                      {entry.status ? (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  <div key={entry.id} className="bg-white border rounded-lg p-4 space-y-3 transition-all duration-200 hover:shadow-md">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-500">#{entry.id}</span>
+                      {entry.status && (
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           entry.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {entry.status}
                         </span>
-                      ) : "-"}
-                    </td>
-                    <td className="px-2 py-1 text-xs text-gray-500 truncate">
-                      {entry.location || "-"}
-                    </td>
-                  </tr>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">RFID Tag</label>
+                        <input
+                          type="text"
+                          value={entry.rfidTag}
+                          onChange={(e) => updateRfidTag(entry.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              // Move to next input smoothly
+                              if (index < manualEntries.length - 1) {
+                                setTimeout(() => {
+                                  const nextInput = document.querySelector(`input[data-mobile-row="${index + 1}"]`) as HTMLInputElement;
+                                  if (nextInput) {
+                                    nextInput.focus();
+                                    // Smooth scroll to the next input
+                                    nextInput.scrollIntoView({ 
+                                      behavior: 'smooth', 
+                                      block: 'center',
+                                      inline: 'nearest'
+                                    });
+                                  }
+                                }, 50);
+                              }
+                            }
+                          }}
+                          data-mobile-row={index}
+                          placeholder="Enter RFID"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                          disabled={isFetching}
+                        />
+                      </div>
+                      
+                      {(entry.assetName || entry.category || entry.location) && (
+                        <div className="grid grid-cols-1 gap-2 pt-2 border-t animate-in slide-in-from-top duration-300">
+                          {entry.assetName && (
+                            <div className="flex flex-wrap">
+                              <span className="text-xs text-gray-500 min-w-[60px]">Asset: </span>
+                              <span className="text-sm text-gray-900 font-medium">{entry.assetName}</span>
+                            </div>
+                          )}
+                          {entry.category && (
+                            <div className="flex flex-wrap">
+                              <span className="text-xs text-gray-500 min-w-[60px]">Category: </span>
+                              <span className="text-sm text-gray-900">{entry.category}</span>
+                            </div>
+                          )}
+                          {entry.location && (
+                            <div className="flex flex-wrap">
+                              <span className="text-xs text-gray-500 min-w-[60px]">Location: </span>
+                              <span className="text-sm text-gray-900">{entry.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Fetch Progress */}
-          {isFetching && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <LoaderIcon className="h-3 w-3 animate-spin" />
-                Fetching assets... {fetchProgress}%
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${fetchProgress}%` }}
-                />
+                
+                {/* Loading indicator for new rows */}
+                {manualEntries.length > 10 && (
+                  <div className="text-center py-2">
+                    <span className="text-xs text-gray-400">
+                      {manualEntries.length} rows available
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            {!isFetching && scannedItems.length === 0 ? (
-              <Button
-                size="sm"
-                onClick={fetchAssets}
-                disabled={!manualEntries.some(e => e.rfidTag.trim())}
+            {/* Fetch Progress */}
+            {isFetching && (
+              <div className="space-y-2 bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <LoaderIcon className="h-4 w-4 animate-spin" />
+                  Fetching assets... {fetchProgress}%
+                </div>
+                <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                    style={{ width: `${fetchProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 border-t">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onClose}
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
-                Fetch Assets
+                Cancel
               </Button>
-            ) : scannedItems.length > 0 ? (
-              <Button size="sm" onClick={handleSaveBundle} className="bg-green-500 hover:bg-green-600">
-                Save Bundle
-              </Button>
-            ) : null}
+              {!isFetching && scannedItems.length === 0 ? (
+                <Button
+                  size="sm"
+                  onClick={fetchAssets}
+                  disabled={!manualEntries.some(e => e.rfidTag.trim())}
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
+                  Fetch Assets
+                </Button>
+              ) : scannedItems.length > 0 ? (
+                <Button 
+                  size="sm" 
+                  onClick={handleSaveBundle} 
+                  className="bg-green-500 hover:bg-green-600 w-full sm:w-auto order-1 sm:order-2"
+                >
+                  Save Bundle ({scannedItems.length} items)
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       </AlertDialogContent>

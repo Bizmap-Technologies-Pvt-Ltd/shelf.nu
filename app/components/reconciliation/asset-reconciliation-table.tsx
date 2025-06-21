@@ -27,7 +27,7 @@ export function AssetReconciliationTable({
         </thead>
         <tbody>
           {items.map((item, index) => (
-            <tr key={item.rfidTag} className={index !== items.length - 1 ? "border-b" : ""}>
+            <tr key={index} className={index !== items.length - 1 ? "border-b" : ""}>
               <Td>{item.rfidTag}</Td>
               <Td>{item.assetName}</Td>
               <Td>{item.category}</Td>
