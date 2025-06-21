@@ -292,9 +292,6 @@ export async function getAssetsByRfidBatch<T extends Prisma.AssetInclude | undef
       return [];
     }
 
-    console.log("getAssetsByRfidBatch - validRfidTags:", validRfidTags);
-    console.log("getAssetsByRfidBatch - organizationId:", organizationId);
-
     const otherOrganizationIds = userOrganizations?.map(
       (org) => org.organizationId
     );
@@ -318,9 +315,6 @@ export async function getAssetsByRfidBatch<T extends Prisma.AssetInclude | undef
       },
       include: { ...include },
     });
-
-    console.log("getAssetsByRfidBatch - found assets:", assets.length);
-    console.log("getAssetsByRfidBatch - assets:", assets.map(a => ({ id: a.id, title: a.title, rfid: a.rfid })));
 
     // Type assertion since we know rfid is not null due to our where clause
     return assets as (AssetWithInclude<T> & { rfid: string })[];

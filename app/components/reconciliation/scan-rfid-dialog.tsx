@@ -144,8 +144,6 @@ export function ScanRfidDialog({
     }
 
     try {
-      console.log("Fetching assets for RFID tags:", rfidTags);
-      
       // Send JSON data instead of FormData to properly handle arrays
       const response = await fetch("/api/assets/rfid", {
         method: "POST",
@@ -164,9 +162,7 @@ export function ScanRfidDialog({
       }
 
       const result = await response.json();
-      console.log("API Response:", result);
       const foundAssets: AssetWithRfidData[] = result.assets || [];
-      console.log("Found assets:", foundAssets);
       
       // Convert found assets to reconciliation items
       const reconciliationItems: AssetReconciliationItem[] = [];
@@ -195,21 +191,15 @@ export function ScanRfidDialog({
       setScannedItems(reconciliationItems);
       
       // Update manual entries with found asset data
-      console.log("Updating manual entries. Current entries:", manualEntries);
-      console.log("Found assets for update:", foundAssets);
-      
       setManualEntries(prev => {
         const updated = prev.map(entry => {
           if (!entry.rfidTag.trim()) return entry;
           
-          console.log(`Looking for asset with RFID: "${entry.rfidTag.trim()}" (lowercase: "${entry.rfidTag.trim().toLowerCase()}")`);
           const foundAsset = foundAssets.find(asset => {
-            console.log(`Comparing with asset RFID: "${asset.rfid}" (lowercase: "${asset.rfid.toLowerCase()}")`);
             return asset.rfid.toLowerCase() === entry.rfidTag.trim().toLowerCase();
           });
           
           if (foundAsset) {
-            console.log(`Found matching asset for RFID ${entry.rfidTag}: ${foundAsset.title}`);
             return {
               ...entry,
               assetName: foundAsset.title,
@@ -218,7 +208,6 @@ export function ScanRfidDialog({
               location: foundAsset.location?.name || "No Location",
             };
           } else {
-            console.log(`No matching asset found for RFID ${entry.rfidTag}`);
             return {
               ...entry,
               assetName: "Asset Not Found",
@@ -229,7 +218,6 @@ export function ScanRfidDialog({
           }
         });
         
-        console.log("Updated manual entries:", updated);
         return updated;
       });
 
