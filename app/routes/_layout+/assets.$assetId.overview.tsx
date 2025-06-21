@@ -359,6 +359,18 @@ export default function AssetOverview() {
                   </div>
                 </li>
               ) : null}
+              {asset?.rfid ? (
+                <li className="w-full border-b-[1.1px] border-b-gray-100 p-4 md:flex">
+                  <span className="w-1/4 text-[14px] font-medium text-gray-900">
+                    RFID
+                  </span>
+                  <div className="-ml-2 md:w-3/5">
+                    <div className="ml-2 mt-1 text-gray-600 md:mt-0 md:w-3/5">
+                      {asset.rfid}
+                    </div>
+                  </div>
+                </li>
+              ) : null}
               {asset?.organization && asset.valuation ? (
                 <li className="w-full border-b-[1.1px] border-b-gray-100 p-4 last:border-b-0 md:flex">
                   <span className="w-1/4 text-[14px] font-medium text-gray-900">

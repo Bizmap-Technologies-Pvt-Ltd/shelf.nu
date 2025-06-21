@@ -182,6 +182,7 @@ export async function action({ context, request, params }: ActionFunctionArgs) {
       newLocationId,
       currentLocationId,
       valuation,
+      rfid,
       addAnother,
     } = payload;
 
@@ -199,6 +200,7 @@ export async function action({ context, request, params }: ActionFunctionArgs) {
       userId: authSession.userId,
       customFieldsValues,
       valuation,
+      rfid,
       organizationId,
     });
 
@@ -252,6 +254,7 @@ export default function AssetEditPage() {
           locationId={asset.locationId}
           description={asset.description}
           valuation={asset.valuation}
+          rfid={asset.rfid}
           tags={tags}
         />
       </div>

@@ -157,6 +157,7 @@ export async function action({ context, request }: LoaderFunctionArgs) {
       qrId,
       newLocationId,
       valuation,
+      rfid,
       addAnother,
     } = payload;
 
@@ -173,6 +174,7 @@ export async function action({ context, request }: LoaderFunctionArgs) {
       qrId,
       tags,
       valuation,
+      rfid,
       customFieldsValues,
     });
 

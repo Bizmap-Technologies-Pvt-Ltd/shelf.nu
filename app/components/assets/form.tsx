@@ -60,6 +60,7 @@ export const NewAssetFormSchema = z.object({
   currentLocationId: z.string().optional(),
   qrId: z.string().optional(),
   tags: z.string().optional(),
+  rfid: z.string().optional().nullable(),
   valuation: z
     .string()
     .optional()
@@ -84,6 +85,7 @@ type Props = Partial<
     | "locationId"
     | "description"
     | "valuation"
+    | "rfid"
   >
 > & {
   qrId?: Qr["id"] | null;
@@ -100,6 +102,7 @@ export const AssetForm = ({
   locationId,
   description,
   valuation,
+  rfid,
   qrId,
   tags,
 }: Props) => {
@@ -379,6 +382,28 @@ export const AssetForm = ({
                 <div>{name}</div>
               </div>
             )}
+          />
+        </FormRow>
+
+        <FormRow
+          rowLabel={"RFID"}
+          subHeading={
+            <p>
+              Specify the RFID tag identifier for asset tracking.
+            </p>
+          }
+          className="border-b-0 py-[10px]"
+          required={zodFieldIsRequired(FormSchema.shape.rfid)}
+        >
+          <Input
+            label="RFID"
+            hideLabel
+            name={zo.fields.rfid()}
+            disabled={disabled}
+            error={zo.errors.rfid()?.message}
+            className="w-full"
+            defaultValue={rfid || ""}
+            required={zodFieldIsRequired(FormSchema.shape.rfid)}
           />
         </FormRow>
 

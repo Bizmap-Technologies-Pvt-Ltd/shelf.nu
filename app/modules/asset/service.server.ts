@@ -591,6 +591,7 @@ export async function createAsset({
   availableToBook = true,
   mainImage,
   mainImageExpiration,
+  rfid,
   id: assetId, // Add support for passing an ID
 }: Pick<
   Asset,
@@ -607,6 +608,7 @@ export async function createAsset({
   id?: Asset["id"]; // Make ID optional
   mainImage?: Asset["mainImage"];
   mainImageExpiration?: Asset["mainImageExpiration"];
+  rfid?: Asset["rfid"];
 }) {
   try {
     /** User connection data */
@@ -662,6 +664,7 @@ export async function createAsset({
       availableToBook,
       mainImage,
       mainImageExpiration,
+      rfid,
     };
 
     /** If a categoryId is passed, link the category to the asset. */
@@ -774,6 +777,7 @@ export async function updateAsset({
   valuation,
   customFieldsValues: customFieldsValuesFromForm,
   organizationId,
+  rfid,
 }: UpdateAssetPayload) {
   try {
     const isChangingLocation = newLocationId !== currentLocationId;
@@ -784,7 +788,9 @@ export async function updateAsset({
       mainImage,
       mainImageExpiration,
       thumbnailImage,
+      rfid,
     };
+
 
     /** If uncategorized is passed, disconnect the category */
     if (categoryId === "uncategorized") {

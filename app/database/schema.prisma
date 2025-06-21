@@ -98,6 +98,7 @@ model Asset {
   status              AssetStatus @default(AVAILABLE)
   valuation           Float?      @map("value") // Field to store the monetary value of an asset
   availableToBook     Boolean     @default(true)
+  rfid                String?     // RFID tag identifier for asset tracking
 
   // Datetime
   createdAt DateTime @default(now())

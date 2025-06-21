@@ -47,6 +47,7 @@ export interface UpdateAssetPayload {
   customFieldsValues?: ShelfAssetCustomFieldValueType[];
   valuation?: Asset["valuation"];
   organizationId: Organization["id"];
+  rfid?: string | null;
 }
 
 export interface CreateAssetFromContentImportPayload
@@ -59,6 +60,7 @@ export interface CreateAssetFromContentImportPayload
   location?: string;
   custodian?: string;
   bookable?: "yes" | "no";
+  rfid?: string;
   imageUrl?: string; // URL of the image to import
 }
 
@@ -67,6 +69,7 @@ export interface CreateAssetFromBackupImportPayload
   id: string;
   title: string;
   description?: string;
+  rfid?: string;
   category:
     | {
         id: string;
@@ -122,6 +125,7 @@ export type AdvancedIndexAsset = Pick<
   | "valuation"
   | "availableToBook"
   | "kitId"
+  | "rfid"
 > & {
   qrId: string; // QR code will always be available
   kit: Pick<Kit, "id" | "name"> | null;
