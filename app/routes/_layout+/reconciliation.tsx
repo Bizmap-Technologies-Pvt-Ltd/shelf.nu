@@ -17,6 +17,7 @@ import { useState, useCallback } from "react";
 import { requirePermission } from "~/utils/roles.server";
 import { PermissionAction, PermissionEntity } from "~/utils/permissions/permission.data";
 import { getUserByID } from "~/modules/user/service.server";
+import { getAllEntriesForCreateAndEdit } from "~/modules/asset/service.server";
 
 export const meta: MetaFunction = () => [
   { title: appendToMetaTitle("Assets Reconciliation") },
@@ -76,6 +77,12 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     // Get current user information
     const user = await getUserByID(userId);
 
+    // Get locations for the dropdown
+    const { locations, totalLocations } = await getAllEntriesForCreateAndEdit({
+      organizationId,
+      request,
+    });
+
     // In a real application, we would fetch this from a database
     const recentReconciliations: ReconciliationBundle[] = [];
 
@@ -87,6 +94,8 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       organizationId,
       userOrganizations,
       currentUser: user,
+      locations,
+      totalLocations,
     }));
   } catch (cause) {
     const shelfError = cause instanceof ShelfError ? cause : new ShelfError({
@@ -113,12 +122,12 @@ export default function AssetsReconciliation() {
     );
   }
   
-  const { header, recentReconciliations: initialBundles, organizationId, userOrganizations, currentUser } = loaderData;
+  const { header, recentReconciliations: initialBundles, organizationId, userOrganizations, currentUser, locations } = loaderData;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [scannedItems] = useAtom(scannedItemsAtom);
   const [bundles, setBundles] = useState<ReconciliationBundle[]>(initialBundles);
 
-  const handleSaveBundle = (items: ScannedRfidItem[]) => {
+  const handleSaveBundle = (items: ScannedRfidItem[], locationId?: string) => {
     // Create user display name from available user data
     let userName = "Unknown User";
     let userEmail = "unknown@example.com";
@@ -131,15 +140,19 @@ export default function AssetsReconciliation() {
       userEmail = currentUser.email || "unknown@example.com";
     }
     
-    // Get location from the first asset, or default to "Unknown Location"
-    const firstAssetLocation = items.length > 0 && items[0].asset?.location 
-      ? items[0].asset.location 
-      : "Unknown Location";
+    // Use the selected location name, fallback to asset location or "Unknown Location"
+    let locationName = "Unknown Location";
+    if (locationId && locations) {
+      const selectedLocation = locations.find((loc: any) => loc.id === locationId);
+      locationName = selectedLocation?.name || "Unknown Location";
+    } else if (items.length > 0 && items[0].asset?.location) {
+      locationName = items[0].asset.location;
+    }
     
     const newBundle: ReconciliationBundle = {
       id: generateBundleId(),
       date: new Date().toISOString(),
-      locationName: firstAssetLocation,
+      locationName,
       scannedBy: userName,
       scannedByEmail: userEmail,
       totalItems: items.length,
