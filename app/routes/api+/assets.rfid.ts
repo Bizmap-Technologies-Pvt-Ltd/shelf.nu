@@ -132,9 +132,16 @@ export async function action({ request, context }: ActionFunctionArgs) {
           const { rfidTags: tags } = BatchRfidSchema.parse(requestData);
           rfidTags = tags;
         } else {
-          // For FormData requests, use parseData
-          const { rfidTags: tags } = parseData(requestData, BatchRfidSchema);
-          rfidTags = tags;
+          // For FormData requests, manually extract array since parseFormAny doesn't handle arrays properly
+          const formData = requestData as FormData;
+          rfidTags = formData.getAll("rfidTags") as string[];
+          
+          // Validate the extracted data
+          const validation = BatchRfidSchema.safeParse({ rfidTags });
+          if (!validation.success) {
+            throw new Error("Invalid RFID tags provided");
+          }
+          rfidTags = validation.data.rfidTags;
         }
 
         const assets = await getAssetsByRfidBatch({

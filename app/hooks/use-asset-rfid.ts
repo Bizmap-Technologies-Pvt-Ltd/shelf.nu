@@ -108,40 +108,37 @@ export function useAssetRfid(
 
     setBatchError(null);
 
-    return new Promise((resolve, reject) => {
+    try {
       const formData = new FormData();
       formData.append("intent", "batch-lookup");
-      validTags.forEach(tag => formData.append("rfidTags", tag.trim()));
+      validTags.forEach((tag) => formData.append("rfidTags", tag.trim()));
 
-      batchFetcher.submit(formData, {
+      const response = await fetch("/api/assets/rfid", {
         method: "POST",
-        action: "/api/assets/rfid",
+        body: formData,
       });
 
-      // Handle the response when fetcher completes
-      const handleComplete = () => {
-        if (batchFetcher.data) {
-          const responseData = batchFetcher.data as any;
-          if (responseData.error) {
-            setBatchError(responseData.error.message);
-            reject(new Error(responseData.error.message));
-          } else {
-            resolve(responseData.data?.assets || []);
-          }
-        }
-      };
+      const responseData = await response.json();
 
-      // Set up a listener for when the fetcher completes
-      const checkComplete = () => {
-        if (batchFetcher.state === "idle" && batchFetcher.data) {
-          handleComplete();
-        } else {
-          setTimeout(checkComplete, 100);
-        }
-      };
-      checkComplete();
-    });
-  }, [batchFetcher]);
+      if (!response.ok) {
+        throw new Error(responseData.error?.message || "Failed to fetch assets");
+      }
+
+      if (responseData.error) {
+        setBatchError(responseData.error.message);
+        throw new Error(responseData.error.message);
+      }
+
+      // Try both possible response formats
+      const assets = responseData.data?.assets || responseData.assets || [];
+      
+      return assets;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+      setBatchError(errorMessage);
+      throw err;
+    }
+  }, []);
 
   const checkRfidAvailability = useCallback(async (
     rfid: string, 

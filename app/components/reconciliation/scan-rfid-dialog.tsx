@@ -14,6 +14,7 @@ import DynamicSelect from "../dynamic-select/dynamic-select";
 import type { Organization, UserOrganization } from "@prisma/client";
 import { RfidScanner } from "./rfid-processor/rfid-scanner";
 import type { RfidTag } from "./rfid-processor";
+import { useAssetRfid } from "~/hooks/use-asset-rfid";
 
 export function ScanRfidDialog({
   isOpen,
@@ -31,7 +32,16 @@ export function ScanRfidDialog({
   const [scannedItems, setScannedItems] = useState<AssetReconciliationItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const setGlobalScannedItems = useSetAtom(scannedItemsAtom);
+
+  // Initialize the RFID asset hook
+  const {
+    getAssetsByRfidBatch,
+    isBatchLoading,
+    batchError,
+    clearErrors,
+  } = useAssetRfid(organizationId, userOrganizations);
 
   // Clear scanning state when dialog opens/closes
   useEffect(() => {
@@ -39,41 +49,93 @@ export function ScanRfidDialog({
       setIsScanning(false);
       setSelectedLocationId("");
       setScannedItems([]);
+      clearErrors();
     }
-  }, [isOpen]);
+  }, [isOpen, clearErrors]);
 
-  // Convert RFID tags to asset reconciliation items
-  const convertRfidTagsToAssets = useCallback((tags: RfidTag[]): AssetReconciliationItem[] => {
-    return tags.map((tagData) => ({
-      rfidTag: tagData.tag,
-      assetId: `asset-${tagData.tag.toLowerCase()}`,
-      assetName: `Asset for ${tagData.tag}`,
-      category: "Electronics", // Default category, can be enhanced with real data lookup
-      status: Math.random() > 0.5 ? "Available" : "In Use" as "Available" | "In Use",
-      location: selectedLocationId ? "Selected Location" : "Unknown Location",
-    }));
-  }, [selectedLocationId]);
+  // Convert RFID tags to asset reconciliation items using real API
+  const convertRfidTagsToAssets = useCallback(async (tags: RfidTag[]): Promise<AssetReconciliationItem[]> => {
+    if (!tags.length) return [];
+
+    try {
+      setIsProcessing(true);
+      clearErrors();
+
+      // Extract unique RFID tag strings
+      const rfidTags = [...new Set(tags.map(tag => tag.tag.trim()))].filter(Boolean);
+      
+      if (!rfidTags.length) return [];
+
+      // Fetch real asset data using the API
+      const foundAssets = await getAssetsByRfidBatch(rfidTags);
+
+      // Create a map of found assets by RFID (case-insensitive)
+      const foundAssetMap = new Map();
+      foundAssets.forEach(asset => {
+        foundAssetMap.set(asset.rfid.toLowerCase(), asset);
+      });
+
+      // Convert to reconciliation items
+      const reconciliationItems: AssetReconciliationItem[] = rfidTags.map(rfidTag => {
+        const lookupKey = rfidTag.toLowerCase();
+        const foundAsset = foundAssetMap.get(lookupKey);
+        
+        if (foundAsset) {
+          // Found real asset data
+          return {
+            rfidTag,
+            assetId: foundAsset.id,
+            assetName: foundAsset.title,
+            category: foundAsset.category?.name || "Unknown",
+            status: foundAsset.status || "Unknown",
+            location: foundAsset.location?.name || selectedLocationId ? "Selected Location" : "Unknown Location",
+          } as AssetReconciliationItem;
+        } else {
+          // Asset not found
+          return {
+            rfidTag,
+            assetId: "unknown",
+            assetName: "Asset Not Found",
+            category: "Unknown",
+            status: "Unknown",
+            location: "Unknown Location",
+          } as AssetReconciliationItem;
+        }
+      });
+
+      return reconciliationItems;
+    } catch (error) {
+      // Fallback: create "Asset Not Found" entries for all tags
+      return tags.map(tagData => ({
+        rfidTag: tagData.tag,
+        assetId: "unknown",
+        assetName: "Asset Not Found",
+        category: "Unknown",
+        status: "Unknown",
+        location: "Unknown Location",
+      }));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedLocationId, getAssetsByRfidBatch, clearErrors]);
 
   // Handle new RFID tags from scanner
-  const handleTagsScanned = useCallback((newTags: RfidTag[]) => {
-    console.log('📥 Received new tags:', newTags.length, 'tags:', newTags.map(t => t.tag));
-    
-    const newAssets = convertRfidTagsToAssets(newTags);
-    setScannedItems(prev => {
-      // Filter out duplicates based on RFID tag
-      const existingTags = new Set(prev.map(item => item.rfidTag));
-      const uniqueNewAssets = newAssets.filter(asset => !existingTags.has(asset.rfidTag));
+  const handleTagsScanned = useCallback(async (newTags: RfidTag[]) => {
+    try {
+      const newAssets = await convertRfidTagsToAssets(newTags);
       
-      console.log('📋 Current items in table:', prev.length);
-      console.log('🔍 Existing tags:', Array.from(existingTags));
-      console.log('✅ New unique assets to add:', uniqueNewAssets.length);
-      console.log('🚫 Duplicate assets filtered out:', newAssets.length - uniqueNewAssets.length);
-      
-      const updatedItems = [...prev, ...uniqueNewAssets];
-      console.log('📊 Total items after update:', updatedItems.length);
-      
-      return updatedItems;
-    });
+      setScannedItems(prev => {
+        // Filter out duplicates based on RFID tag
+        const existingTags = new Set(prev.map(item => item.rfidTag));
+        const uniqueNewAssets = newAssets.filter(asset => !existingTags.has(asset.rfidTag));
+        
+        const updatedItems = [...prev, ...uniqueNewAssets];
+        
+        return updatedItems;
+      });
+    } catch (error) {
+      // Handle error silently or show user-friendly message
+    }
   }, [convertRfidTagsToAssets]);
 
   const handleStartScanning = useCallback(() => {
@@ -203,6 +265,28 @@ export function ScanRfidDialog({
                 isActive={isScanning}
               />
 
+              {/* Error Messages */}
+              {batchError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-800 text-sm">
+                    <strong>Error fetching assets:</strong> {batchError}
+                  </p>
+                </div>
+              )}
+
+              {/* Processing Status */}
+              {(isProcessing || isBatchLoading) && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-blue-800 text-sm flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    Processing RFID tags and fetching asset data...
+                  </p>
+                </div>
+              )}
+
               {/* Save Button Section with Live Count */}
               <div className="flex justify-between items-center mb-4">
                 {/* Live scanning counter */}
@@ -216,7 +300,12 @@ export function ScanRfidDialog({
                 
                 {/* Save button */}
                 {scannedItems.length > 0 && !isScanning && (
-                  <Button onClick={handleSaveBundle} variant="outline" className="hover:bg-gray-100">
+                  <Button 
+                    onClick={handleSaveBundle} 
+                    variant="outline" 
+                    className="hover:bg-gray-100"
+                    disabled={isProcessing || isBatchLoading}
+                  >
                     Save Bundle ({scannedItems.length} items)
                   </Button>
                 )}

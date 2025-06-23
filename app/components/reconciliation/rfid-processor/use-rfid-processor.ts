@@ -61,7 +61,7 @@ export function useRfidProcessor(
       const cleanTag = tag.trim();
       
       // Validate tag format (basic validation)
-      if (cleanTag.length < 3 || cleanTag.length > 100) {
+      if (cleanTag.length < 2 || cleanTag.length > 100) {
         // Skip invalid tags silently in production
         return;
       }

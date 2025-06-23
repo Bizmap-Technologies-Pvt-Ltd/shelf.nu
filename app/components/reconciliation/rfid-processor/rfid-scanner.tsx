@@ -109,8 +109,6 @@ export function RfidScanner({
     
     const activeInput = inputFieldsRef.current[currentIndexRef.current];
     if (activeInput && activeInput.classList.contains('active')) {
-      console.log('🎯 Focusing field:', currentIndexRef.current + 1, 'Element:', activeInput);
-      
       // Force visibility and enable the input
       activeInput.style.pointerEvents = 'auto';
       activeInput.style.display = 'block';
@@ -132,14 +130,13 @@ export function RfidScanner({
           activeInput.setSelectionRange(length, length);
           
           const isFocused = document.activeElement === activeInput;
-          console.log(`🎯 Focus attempt ${attempt} - Focused element:`, isFocused, 'Active element:', document.activeElement?.tagName);
           
           if (!isFocused && attempt < 5) {
             // Try again if not focused
             setTimeout(() => attemptFocus(attempt + 1), 50 * attempt);
           }
         } catch (error) {
-          console.error('Focus attempt failed:', error);
+          // Focus attempt failed
         }
       };
       
@@ -147,7 +144,7 @@ export function RfidScanner({
       attemptFocus(1);
       
     } else {
-      console.log('🎯 Cannot focus - Active input not found or not active');
+      // Cannot focus - Active input not found or not active
     }
   }, []);
 
@@ -245,11 +242,6 @@ export function RfidScanner({
           lastAction: "Created first field",
           fieldStatus: "Active"
         });
-        // Only console log on first field creation
-        if (ENABLE_DETAILED_LOGGING) {
-          console.log(`🟢 Field ${index} created and set as active (first field)`);
-        }
-        
         // Focus the field for manual input if enabled
         focusActiveField();
       } else {
@@ -305,11 +297,6 @@ export function RfidScanner({
         lastAction: `Switching from field ${currentFieldNum}`,
         fieldStatus: "Processing"
       });
-
-      // Only log major events to console
-      if (ENABLE_DETAILED_LOGGING) {
-        console.log(`🔁 Field ${currentFieldNum}: ${tags.length} tags → Processing`);
-      }
 
       // Mark as processing and hide for manual input mode
       currentInput.dataset.processing = "true";
@@ -405,9 +392,7 @@ export function RfidScanner({
           lastAction: `Created new field ${currentIndexRef.current + 1} - all fields busy`,
           fieldStatus: "New field active"
         });
-        if (ENABLE_DETAILED_LOGGING) {
-          console.log(`➕ Created new field ${currentIndexRef.current + 1} (${inputFieldsRef.current.length}/${MAX_FIELDS_LIMIT} max)`);
-        }
+        // Field created successfully
       }
     }
     
@@ -529,11 +514,6 @@ export function RfidScanner({
     // Set initial field visibility (all fields visible when not scanning)
     setTimeout(updateFieldVisibility, 200);
     
-    // Only log once on initialization
-    if (ENABLE_DETAILED_LOGGING) {
-      console.log("🚀 RFID Dynamic Field Handler started");
-      console.log(`⚙️ Config: ${RFID_CONFIG.MAX_TAGS_PER_FIELD} tags/field, ${RFID_CONFIG.MAX_TIME_PER_FIELD/1000}s timeout`);
-    }
     return () => {
       // Cleanup
       if (monitorIntervalRef.current) {
@@ -628,11 +608,10 @@ export function RfidScanner({
     if (!RFID_CONFIG.ENABLE_DUMMY_DATA && isActive) {
       const handleKeyPress = (e: KeyboardEvent) => {
         const activeInput = inputFieldsRef.current[currentIndexRef.current];
-        console.log('🎹 Key pressed:', e.key, 'Active element:', document.activeElement?.tagName, 'Expected input:', activeInput);
         
         // If key is pressed but no input is focused, intercept and manually add to input
         if (document.activeElement !== activeInput && activeInput) {
-          console.log('🎯 Key pressed but wrong element focused - intercepting keystroke');
+          // Key pressed but wrong element focused - intercepting keystroke
           
           // Prevent the default behavior on the wrong element
           e.preventDefault();
@@ -700,10 +679,6 @@ export function RfidScanner({
             input.dataset.processing = "false";
             input.dataset.processed = "true";
             input.classList.remove("active");
-            
-            if (ENABLE_DETAILED_LOGGING) {
-              console.log(`🔄 Stop: Processed ${tags.length} remaining tags from field ${index + 1}`);
-            }
           }
         }
       });
@@ -715,9 +690,6 @@ export function RfidScanner({
         fieldStatus: "Stopped"
       });
 
-      if (ENABLE_DETAILED_LOGGING && totalRemainingTags > 0) {
-        console.log(`✅ Stop complete: Processed ${totalRemainingTags} remaining tags from ${inputFieldsRef.current.length} fields`);
-      }
     } else {
       // Count but don't process remaining tags
       inputFieldsRef.current.forEach((input) => {
@@ -733,12 +705,9 @@ export function RfidScanner({
           : "Stopped - no remaining data",
         fieldStatus: "Stopped"
       });
+    }
 
-      if (ENABLE_DETAILED_LOGGING && totalRemainingTags > 0) {
-        console.log(`⚠️ Stop: Ignored ${totalRemainingTags} remaining tags (PROCESS_REMAINING_ON_STOP = false)`);
-      }      }
-
-      // Stop all processes
+    // Stop all processes
       rfidProcessor.stop();
       dummyRfid.stopSimulation();
     }
