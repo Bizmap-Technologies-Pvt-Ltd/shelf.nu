@@ -43,7 +43,7 @@ export default function AssetsByStatusChart() {
                   data={chartData}
                   category="assets"
                   index="status"
-                  colors={["green", "blue", "purple"]}
+                  colors={["blue", "indigo", "violet"]}
                   showAnimation={true}
                   animationDuration={400}
                 />

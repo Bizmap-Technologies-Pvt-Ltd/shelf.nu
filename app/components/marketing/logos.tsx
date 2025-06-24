@@ -16,13 +16,13 @@ export const ShelfSidebarLogo = ({ minimized }: { minimized: boolean }) => {
       <img
         src={logoPath.symbol}
         alt="Shelf Logo"
-        className="mx-1.5 inline h-[32px] transition duration-150 ease-linear"
+        className="mx-1.5 inline h-[50px] transition duration-150 ease-linear"
       />
     ) : (
       <img
         src={logoPath.fullLogo}
         alt="Shelf Logo"
-        className="mx-1.5 inline h-[32px] transition duration-150 ease-linear"
+        className="mx-1.5 inline h-[50px] transition duration-150 ease-linear"
       />
     );
   }
@@ -50,14 +50,14 @@ export const ShelfMobileLogo = () => {
   const { logoPath } = config;
 
   if (logoPath) {
-    return <img src={logoPath.fullLogo} alt="Shelf Logo" className="h-full" />;
+    return <img src={logoPath.fullLogo} alt="Shelf Logo" className="h-[46px]" />;
   }
 
   return (
     <img
       src="/static/images/logo-full-color(x2).png"
       alt="logo"
-      className="h-full"
+      className="h-[46px]"
     />
   );
 };

@@ -855,7 +855,7 @@ export function RfidScanner({
                   field.isActive 
                     ? 'border-green-500 bg-green-50' 
                     : field.isProcessing 
-                    ? 'border-orange-500 bg-orange-50'
+                    ? 'border-primary-500 bg-primary-50'
                     : field.isProcessed 
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-300 bg-gray-50'
@@ -865,7 +865,7 @@ export function RfidScanner({
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">Field {field.id}</span>
                     {field.isActive && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">ACTIVE</span>}
-                    {field.isProcessing && <span className="text-xs bg-orange-600 text-white px-2 py-0.5 rounded">PROCESSING</span>}
+                    {field.isProcessing && <span className="text-xs bg-primary-600 text-white px-2 py-0.5 rounded">PROCESSING</span>}
                     {field.isProcessed && <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">PROCESSED</span>}
                     {ENABLE_SMART_FIELD_REUSE && field.isProcessed && (
                       <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">REUSABLE</span>

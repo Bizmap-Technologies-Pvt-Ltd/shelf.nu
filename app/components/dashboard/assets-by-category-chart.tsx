@@ -12,21 +12,21 @@ import { InfoTooltip } from "../shared/info-tooltip";
 export default function AssetsByCategoryChart() {
   const { assetsByCategory } = useLoaderData<typeof loader>();
   const chartColors: Color[] = [
+    "blue",
+    "indigo",
+    "violet",
+    "purple",
     "slate",
     "sky",
-    "rose",
-    "orange",
-    "red",
-    "purple",
   ];
 
   const correspondingChartColorsHex: string[] = [
+    "#4259a7",
+    "#6366f1",
+    "#8b5cf6",
+    "#a855f7",
     "#64748b",
     "#0ea5e9",
-    "#f43f5e",
-    "#f97316",
-    "#ef4444",
-    "#a855f7",
   ];
 
   return (

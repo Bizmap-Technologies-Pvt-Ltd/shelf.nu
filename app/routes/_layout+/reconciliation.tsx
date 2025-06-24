@@ -176,7 +176,7 @@ export default function AssetsReconciliation() {
         <div className="flex gap-2">
           <Button
             onClick={() => setIsDialogOpen(true)}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-primary-500 hover:bg-primary-600"
             icon="scan"
             data-test-id="scanItems"
           >

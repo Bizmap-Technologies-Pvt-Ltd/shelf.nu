@@ -1543,9 +1543,9 @@ export function PartialCheckboxIcon(props: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <rect width={19} height={19} x={0.5} y={0.5} fill="#FEF6EE" rx={3.5} />
-      <rect width={19} height={19} x={0.5} y={0.5} stroke="#EF6820" rx={3.5} />
+      <rect width={19} height={19} x={0.5} y={0.5} stroke="#4259a7" rx={3.5} />
       <path
-        stroke="#EF6820"
+        stroke="#4259a7"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2}

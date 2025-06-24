@@ -34,7 +34,7 @@ export function AssetReconciliationTable({
             <tr 
               key={index} 
               className={`${index !== items.length - 1 ? "border-b" : ""} ${
-                item.locationMismatch ? "bg-orange-50 hover:bg-orange-100" : "hover:bg-gray-50"
+                item.locationMismatch ? "bg-primary-50 hover:bg-primary-100" : "hover:bg-gray-50"
               }`}
             >
               <Td>{item.rfidTag}</Td>
@@ -61,7 +61,7 @@ export function AssetReconciliationTable({
                 </span>
               </Td>
               <Td>
-                <span className={item.locationMismatch ? "text-orange-600 font-medium" : ""}>
+                <span className={item.locationMismatch ? "text-primary-600 font-medium" : ""}>
                   {item.location}
                 </span>
               </Td>

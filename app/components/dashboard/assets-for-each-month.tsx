@@ -41,7 +41,7 @@ export default function AssetsForEachMonth() {
               data={totalAssetsAtEndOfEachMonth}
               index="month"
               categories={["Total assets"]}
-              colors={["orange"]}
+              colors={["blue"]}
               showAnimation={true}
               animationDuration={400}
               curveType="monotone"

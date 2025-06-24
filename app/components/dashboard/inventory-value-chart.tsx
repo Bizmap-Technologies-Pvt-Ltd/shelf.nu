@@ -45,7 +45,7 @@ export default function InventoryValueChart() {
                   <ProgressCircle
                     value={(valueKnownAssets / totalAssets) * 100}
                     size="xl"
-                    color="orange"
+                    color="blue"
                     className="relative"
                   >
                     <span className="block text-center text-xs font-medium text-gray-600">

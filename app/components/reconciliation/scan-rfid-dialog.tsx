@@ -263,7 +263,7 @@ export function ScanRfidDialog({
                   disabled={!selectedLocationId}
                   className={`text-sm w-full sm:w-auto ${
                     selectedLocationId 
-                      ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                      ? "bg-primary-500 hover:bg-primary-600 text-white" 
                       : "bg-gray-300 text-black/70 cursor-not-allowed"
                   }`}
                 >
