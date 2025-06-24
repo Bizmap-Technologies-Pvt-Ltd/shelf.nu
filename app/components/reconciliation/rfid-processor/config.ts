@@ -43,7 +43,7 @@ export const RFID_CONFIG = {
 
   /** Available dummy tags for testing */
   DUMMY_TAGS: [
-    "TAG001", "TAG002", "TAG003", "TAG004", "TAG005", "TAG006",
+     "TAG002", "TAG003", "TAG004", "TAG005", "TAG006",
     "TAG007", "AA11BB"
   ],
 } as const;

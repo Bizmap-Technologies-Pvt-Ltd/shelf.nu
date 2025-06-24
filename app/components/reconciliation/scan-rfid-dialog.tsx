@@ -188,197 +188,124 @@ export function ScanRfidDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="max-w-4xl max-h-[90vh] border-lg px-0 flex flex-col overflow-hidden">
-        <AlertDialogHeader className="px-6 flex-shrink-0">
+      <AlertDialogContent className="w-[95vw] max-w-4xl min-h-[10vh] max-h-[80vh] mx-4 my-4 sm:mx-auto sm:my-8 border-lg px-0 flex flex-col overflow-hidden">
+        <AlertDialogHeader className="px-4 sm:px-6 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <AlertDialogTitle className="text-xl font-semibold">Scan RFID Tags</AlertDialogTitle>
-            <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 border border-gray-200 py-2 px-3 ">
+            <AlertDialogTitle className="text-lg sm:text-xl font-semibold">Scan RFID Tags</AlertDialogTitle>
+            <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 p-1">
               <XIcon className="h-5 w-5" />
             </button>
           </div>
-          <AlertDialogDescription className="text-sm text-gray-600 mt-2">
-            Use this dialog to scan RFID tags and reconcile assets in real-time via WebSocket connection. Select a location first, then start scanning to see live results.
+          <AlertDialogDescription className="text-xs sm:text-sm text-gray-600 mt-2">
+           Click start to begin scanning RFID tags
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="p-6 flex-1 overflow-y-auto min-h-0">
-          {/* Location Selection Section */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Select Location for Reconciliation</h3>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 max-w-md">
-                <DynamicSelect
-                  fieldName="locationId"
-                  placeholder="Select a location"
-                  model={{ name: "location", queryKey: "name" }}
-                  contentLabel="Locations"
-                  initialDataKey="locations"
-                  countKey="totalLocations"
-                  closeOnSelect
-                  defaultValue={selectedLocationId}
-                  onChange={(locationId) => {
-                    setSelectedLocationId(locationId || "");
-                    // Location name will be fetched by useEffect
-                  }}
-                  extraContent={
-                    <Button
-                      to="/locations/new"
-                      variant="link"
-                      icon="plus"
-                      className="w-full justify-start pt-4"
-                      target="_blank"
-                    >
-                      Create new location
-                    </Button>
-                  }
-                />
-              </div>
+        <div className="p-4 sm:p-6 flex-1 overflow-hidden min-h-0">
+          {/* Location Selection and Action Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex-1 w-full sm:max-w-md">
+              <DynamicSelect
+                fieldName="locationId"
+                placeholder="Select a location"
+                model={{ name: "location", queryKey: "name" }}
+                contentLabel="Locations"
+                initialDataKey="locations"
+                countKey="totalLocations"
+                closeOnSelect
+                defaultValue={selectedLocationId}
+                onChange={(locationId) => {
+                  setSelectedLocationId(locationId || "");
+                  // Location name will be fetched by useEffect
+                }}
+                extraContent={
+                  <Button
+                    to="/locations/new"
+                    variant="link"
+                    icon="plus"
+                    className="w-full justify-start pt-4"
+                    target="_blank"
+                  >
+                    Create new location
+                  </Button>
+                }
+              />
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* Save Bundle Button */}
+              {scannedItems.length > 0 && !isStreaming && (
+                <Button 
+                  onClick={handleSaveBundle} 
+                  variant="outline" 
+                  className="hover:bg-gray-100 border-gray-300 text-black text-sm w-full sm:w-auto"
+                >
+                  Save Bundle ({scannedItems.length} items)
+                </Button>
+              )}
               
-              {/* RFID Control Button - Always visible when location is selected */}
-              {selectedLocationId && (
-                <div className="flex gap-2">
-                  {isScanning ? (
-                    <Button
-                      onClick={handleStopScanning}
-                      variant="outline"
-                      className="bg-red-500 hover:bg-red-600 text-white border-red-500"
-                    >
-                      ⏹️ Stop Scanning
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleStartScanning}
-                      className="bg-green-500 hover:bg-green-600 text-white"
-                    >
-                      ▶️ Start Scanning
-                    </Button>
-                  )}
+              {/* Start/Stop Scanning Button */}
+              {isScanning ? (
+                <Button
+                  onClick={handleStopScanning}
+                  variant="outline"
+                  className="hover:bg-gray-100 text-black border-gray-300 text-sm w-full sm:w-auto"
+                >
+                  Stop Scanning
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleStartScanning}
+                  disabled={!selectedLocationId}
+                  className={`text-sm w-full sm:w-auto ${
+                    selectedLocationId 
+                      ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                      : "bg-gray-300 text-black/70 cursor-not-allowed"
+                  }`}
+                >
+                  Start Scanning
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* {!selectedLocationId && (
+            <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-yellow-800 text-sm">Please select a location before starting reconciliation.</p>
+            </div>
+          )} */}
+
+          {/* RFID Scanner and Table Section */}
+          <>
+            {/* RFID Scanner Component */}
+            <RfidScanner
+              onTagsScanned={handleTagsScanned}
+              isActive={isScanning}
+            />
+
+            {/* Real-time Asset Reconciliation Table */}
+            <div className="bg-white rounded-sm border flex flex-col min-h-[200px] sm:min-h-[300px] max-h-[400px] mt-4 sm:mt-6">
+              {scannedItems.length === 0 && !isStreaming ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2 p-4">
+                  <p className="text-xs sm:mt-[125px] mt-[70px] sm:text-sm text-center max-w-xl">
+                    {selectedLocationId 
+                      ? "No scanned items yet. Click \"Start Scanning\" to begin reconciliation."
+                      : "Select a location and click \"Start Scanning\" to begin reconciliation."
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-auto flex-1">
+                  <div className="w-full">
+                    <AssetReconciliationTable 
+                      items={scannedItems} 
+                    />
+                  </div>
                 </div>
               )}
             </div>
-            {!selectedLocationId && (
-              <p className="text-sm text-gray-500 mt-2">Please select a location before starting reconciliation.</p>
-            )}
-          </div>
-
-          {/* Scanning Section */}
-          {selectedLocationId && (
-            <>
-              {/* RFID Scanner Component */}
-              <RfidScanner
-                onTagsScanned={handleTagsScanned}
-                isActive={isScanning}
-              />
-
-              {/* WebSocket Connection Status */}
-              {connectionState !== 'CONNECTED' && (
-                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-yellow-800 text-sm flex items-center gap-2">
-                    {connectionState === 'CONNECTING' && (
-                      <>
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                        </svg>
-                        Connecting to RFID WebSocket stream...
-                      </>
-                    )}
-                    {connectionState === 'DISCONNECTED' && (
-                      <>⚠️ WebSocket disconnected - will reconnect automatically</>
-                    )}
-                    {connectionState === 'ERROR' && (
-                      <>❌ WebSocket connection error - retrying...</>
-                    )}
-                  </p>
-                </div>
-              )}
-
-              {/* Error Messages */}
-              {streamingError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-red-800 text-sm">
-                    <strong>WebSocket Error:</strong> {streamingError}
-                    <button 
-                      onClick={clearError}
-                      className="ml-2 text-red-600 hover:text-red-800 underline text-xs"
-                    >
-                      Clear
-                    </button>
-                  </p>
-                </div>
-              )}
-
-              {/* Processing Status with Real-time Stats */}
-              {isStreaming && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <p className="text-blue-800 text-sm flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                      </svg>
-                      Live WebSocket RFID streaming active...
-                    </p>
-                    <div className="flex gap-4 text-xs text-blue-600">
-                      <span>Processed: {stats.totalProcessed}</span>
-                      <span>Found: {stats.foundAssets}</span>
-                      <span>Not Found: {stats.notFoundAssets}</span>
-                      {stats.errors > 0 && <span>Errors: {stats.errors}</span>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Save Button Section with Live Count */}
-              <div className="flex justify-between items-center mb-4">
-                {/* Live streaming statistics */}
-                <div className="flex items-center gap-2">
-                  {isStreaming && (
-                    <div className="text-sm text-gray-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
-                      🔄 WebSocket Stream: <span className="font-semibold text-green-600">{scannedItems.length} items</span>
-                    </div>
-                  )}
-                  {!isStreaming && scannedItems.length > 0 && (
-                    <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full border">
-                      📊 Total Scanned: <span className="font-semibold text-gray-800">{scannedItems.length} items</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Save button */}
-                {scannedItems.length > 0 && !isStreaming && (
-                  <Button 
-                    onClick={handleSaveBundle} 
-                    variant="outline" 
-                    className="hover:bg-green-50 border-green-200 text-green-700"
-                  >
-                    💾 Save Bundle ({scannedItems.length} items)
-                  </Button>
-                )}
-              </div>
-
-              {/* Real-time Asset Reconciliation Table */}
-              <div className="bg-white rounded-lg border flex flex-col h-[400px]">
-                {scannedItems.length === 0 && !isStreaming ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
-                    <div className="text-lg">🔄 Ready for WebSocket RFID Streaming</div>
-                    <p className="text-sm text-center max-w-md">
-                      Click "Start Scanning" to begin real-time RFID asset reconciliation via WebSocket. 
-                      Results will appear here instantly as tags are processed.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-auto flex-1 max-h-[400px]">
-                    <div className="max-w-full">
-                      <AssetReconciliationTable 
-                        items={scannedItems} 
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          </>
         </div>
       </AlertDialogContent>
     </AlertDialog>
