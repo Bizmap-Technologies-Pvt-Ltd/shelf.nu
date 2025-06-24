@@ -16,6 +16,7 @@ import type { Organization, UserOrganization } from "@prisma/client";
 import { RfidScanner } from "./rfid-processor/rfid-scanner";
 import type { RfidTag } from "./rfid-processor";
 import { useRfidWebSocket } from "~/hooks/use-rfid-websocket";
+import { RFID_CONFIG } from "./rfid-processor/config";
 
 export function ScanRfidDialog({
   isOpen,
@@ -201,7 +202,9 @@ export function ScanRfidDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="p-4 sm:p-6 flex-1 overflow-hidden min-h-0">
+        <div className={`p-4 sm:p-6 flex-1 min-h-0 ${
+          RFID_CONFIG.SHOW_RFID_SCANNER ? "overflow-y-auto" : "overflow-hidden"
+        }`}>
           {/* Location Selection and Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex-1 w-full sm:max-w-md">
