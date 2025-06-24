@@ -8,6 +8,8 @@ export type AssetReconciliationItem = {
   category: string;
   status: "Available" | "In Use" | "Unknown";
   location: string;
+  locationMismatch?: boolean; // True if asset location != selected location
+  selectedLocationName?: string; // Name of the selected location for comparison
 };
 
 export function AssetReconciliationTable({
@@ -24,12 +26,17 @@ export function AssetReconciliationTable({
             <Th>Asset Name</Th>
             <Th>Category</Th>
             <Th>Status</Th>
-            <Th>Location</Th>
+            <Th>Current Location</Th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, index) => (
-            <tr key={index} className={index !== items.length - 1 ? "border-b" : ""}>
+            <tr 
+              key={index} 
+              className={`${index !== items.length - 1 ? "border-b" : ""} ${
+                item.locationMismatch ? "bg-orange-50 hover:bg-orange-100" : "hover:bg-gray-50"
+              }`}
+            >
               <Td>{item.rfidTag}</Td>
               <Td>
                 {item.assetId !== "unknown" ? (
@@ -53,7 +60,11 @@ export function AssetReconciliationTable({
                   {item.status}
                 </span>
               </Td>
-              <Td>{item.location}</Td>
+              <Td>
+                <span className={item.locationMismatch ? "text-orange-600 font-medium" : ""}>
+                  {item.location}
+                </span>
+              </Td>
             </tr>
           ))}
         </tbody>

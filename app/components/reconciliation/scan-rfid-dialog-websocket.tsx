@@ -6,15 +6,17 @@ import {
   AlertDialogDescription,
 } from "~/components/shared/modal";
 import { Button } from "~/components/shared/button";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useSetAtom } from "jotai";
 import { scannedItemsAtom, type ScannedRfidItem } from "~/atoms/rfid-scanner";
 import { AssetReconciliationTable, type AssetReconciliationItem } from "./asset-reconciliation-table";
+import { RealTimeAssetReconciliationTable } from "./real-time-asset-reconciliation-table";
 import { XIcon } from "lucide-react";
 import DynamicSelect from "../dynamic-select/dynamic-select";
 import type { Organization, UserOrganization } from "@prisma/client";
 import { RfidScanner } from "./rfid-processor/rfid-scanner";
 import type { RfidTag } from "./rfid-processor";
+import { useStreamingRfidProcessor } from "./rfid-processor/use-streaming-rfid-processor";
 import { useRfidWebSocket } from "~/hooks/use-rfid-websocket";
 
 export function ScanRfidDialog({
@@ -33,8 +35,6 @@ export function ScanRfidDialog({
   const [scannedItems, setScannedItems] = useState<AssetReconciliationItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  const [selectedLocationName, setSelectedLocationName] = useState<string>("");
-  const [locationNames, setLocationNames] = useState<Record<string, string>>({});
   const setGlobalScannedItems = useSetAtom(scannedItemsAtom);
 
   // Initialize the WebSocket RFID system
@@ -53,16 +53,42 @@ export function ScanRfidDialog({
     clearResults,
   } = useRfidWebSocket();
 
+  // Create stable callback for tag processing
+  const onTagProcessedRef = useRef<(tag: RfidTag) => void>();
+  onTagProcessedRef.current = useCallback(async (tag: RfidTag) => {
+    console.log(`[WebSocket Dialog] Processing tag: ${tag.tag}`);
+    streamRfidTag(tag.tag);
+  }, [streamRfidTag]);
+
+  // Initialize the streaming RFID processor with stable callback
+  const streamingProcessor = useStreamingRfidProcessor(
+    useCallback((tag: RfidTag) => {
+      onTagProcessedRef.current?.(tag);
+    }, [])
+  );
+
+  // Create stable refs for processor methods to avoid dependency issues
+  const processorMethodsRef = useRef({
+    processTags: streamingProcessor.processTags,
+    start: streamingProcessor.start,
+    stop: streamingProcessor.stop,
+  });
+  processorMethodsRef.current = {
+    processTags: streamingProcessor.processTags,
+    start: streamingProcessor.start,
+    stop: streamingProcessor.stop,
+  };
+
   // Clear scanning state when dialog opens/closes
   useEffect(() => {
     if (!isOpen) {
       setIsScanning(false);
       setSelectedLocationId("");
-      setSelectedLocationName("");
       setScannedItems([]);
       if (isStreaming) {
         endSession();
       }
+      processorMethodsRef.current.stop();
       clearResults();
       clearError();
     }
@@ -80,25 +106,13 @@ export function ScanRfidDialog({
           status = "In Use";
         }
 
-        const currentLocation = result.asset.location?.name || "No Location Assigned";
-        const currentLocationId = result.asset.location?.id;
-        
-        // Check if the asset's current location is different from the selected reconciliation location
-        const locationMismatch = !!(
-          selectedLocationId && 
-          currentLocationId && 
-          currentLocationId !== selectedLocationId
-        );
-
         return {
           rfidTag: result.rfidTag,
           assetId: result.asset.id,
           assetName: result.asset.title,
           category: result.asset.category?.name || "Unknown",
           status,
-          location: currentLocation,
-          locationMismatch,
-          selectedLocationName,
+          location: result.asset.location?.name || selectedLocationId ? "Selected Location" : "Unknown Location",
         };
       } else {
         return {
@@ -108,41 +122,43 @@ export function ScanRfidDialog({
           category: "Unknown",
           status: "Unknown" as const,
           location: "Unknown Location",
-          locationMismatch: false,
-          selectedLocationName,
         };
       }
     });
 
     setScannedItems(reconciliationItems);
-  }, [results, selectedLocationId, selectedLocationName]);
+  }, [results, selectedLocationId]);
 
   // Handle new RFID tags from scanner
   const handleTagsScanned = useCallback(async (newTags: RfidTag[]) => {
     if (!sessionId || !isStreaming) {
+      console.log('[WebSocket Dialog] No active session for tag processing');
       return;
     }
 
-    // Process each tag individually through WebSocket
-    for (const tag of newTags) {
-      streamRfidTag(tag.tag);
-    }
-  }, [sessionId, isStreaming, streamRfidTag]);
+    console.log(`[WebSocket Dialog] Received ${newTags.length} new tags for processing`);
+    processorMethodsRef.current.processTags(newTags.map(tag => tag.tag));
+  }, [sessionId, isStreaming]);
 
   const handleStartScanning = useCallback(() => {
     if (!selectedLocationId) {
+      console.log('[WebSocket Dialog] Cannot start scanning without location selection');
       return;
     }
 
+    console.log('[WebSocket Dialog] Starting WebSocket scan session');
     setIsScanning(true);
     startSession();
+    processorMethodsRef.current.start();
   }, [selectedLocationId, startSession]);
 
   const handleStopScanning = useCallback(() => {
+    console.log('[WebSocket Dialog] Stopping WebSocket scan session');
     setIsScanning(false);
     if (isStreaming) {
       endSession();
     }
+    processorMethodsRef.current.stop();
   }, [isStreaming, endSession]);
 
   const handleCancelBundle = () => {
@@ -218,7 +234,6 @@ export function ScanRfidDialog({
                   defaultValue={selectedLocationId}
                   onChange={(locationId) => {
                     setSelectedLocationId(locationId || "");
-                    // Location name will be fetched by useEffect
                   }}
                   extraContent={
                     <Button
@@ -336,6 +351,11 @@ export function ScanRfidDialog({
                   {isStreaming && (
                     <div className="text-sm text-gray-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
                       🔄 WebSocket Stream: <span className="font-semibold text-green-600">{scannedItems.length} items</span>
+                      {streamingProcessor.stats.currentlyProcessing > 0 && (
+                        <span className="ml-2 text-blue-600">
+                          (+{streamingProcessor.stats.currentlyProcessing} processing)
+                        </span>
+                      )}
                     </div>
                   )}
                   {!isStreaming && scannedItems.length > 0 && (
@@ -370,8 +390,9 @@ export function ScanRfidDialog({
                 ) : (
                   <div className="overflow-auto flex-1 max-h-[400px]">
                     <div className="max-w-full">
-                      <AssetReconciliationTable 
+                      <RealTimeAssetReconciliationTable 
                         items={scannedItems} 
+                        isProcessing={isStreaming}
                       />
                     </div>
                   </div>
