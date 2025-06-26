@@ -1,6 +1,6 @@
 import { ShelfSidebarLogo } from "~/components/marketing/logos";
 import { useSidebarNavItems } from "~/hooks/use-sidebar-nav-items";
-import { SidebarNoticeCard } from "./notice-card";
+// import { SidebarNoticeCard } from "./notice-card";
 import OrganizationSelector from "./organization-selector";
 import {
   Sidebar,
@@ -34,7 +34,7 @@ export default function AppSidebar(props: AppSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter>
-        {state !== "collapsed" && <SidebarNoticeCard />}
+        {/* {state !== "collapsed" && <SidebarNoticeCard />} */}
         <SidebarNav className="p-0" items={bottomMenuItems} />
         <SidebarUserMenu />
       </SidebarFooter>

@@ -30,7 +30,7 @@ export const RFID_CONFIG = {
   // ===== DUMMY DATA =====
   
   /** Enable/disable dummy RFID data generation */
-  ENABLE_DUMMY_DATA: true, // Set to false to disable dummy data generation completely
+  ENABLE_DUMMY_DATA: false, // Set to false to disable dummy data generation completely
   
   /** Interval (ms) for generating dummy RFID data */
   DUMMY_GENERATION_INTERVAL: 500, // 300ms
@@ -43,9 +43,22 @@ export const RFID_CONFIG = {
 
   /** Available dummy tags for testing */
   DUMMY_TAGS: [
-     "TAG002", "TAG003", "TAG004", "TAG005", "TAG006",
-    "TAG007", "AA11BB"
-  ],
+  "E2806A160000501774F2D046",
+  "E2806A160000401774F2D048",
+  "E2004F38E59FE40A66E229FD",
+  "E2806894000040270E6514E7",
+  "E2806A160000401774F2D042",
+  "E2806894000050270E6514E0",
+  "E2004F38E59FE50A66E22A01",
+  "E2806A160000501774F2D03E",
+  "E2806A160000401774F2D044",
+  "20010001",
+  "E2806894000040270E6514DE",
+  "E2801191A5030060C72FA114",
+  "E2806A160000501774F2D040",
+  "E28011700000020D3E321316",
+  "E2004F47CCA8B68A7879E728"
+],
 } as const;
 
 // Helper function to get configuration with environment overrides

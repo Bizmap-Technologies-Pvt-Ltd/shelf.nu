@@ -26,7 +26,7 @@ export function RfidScanner({
   // Always initialize these, regardless of UI visibility
   // Hidden input field management (like your original processor.js)
   const inputContainerRef = useRef<HTMLDivElement>(null);
-  const inputFieldsRef = useRef<HTMLInputElement[]>([]);
+  const inputFieldsRef = useRef<(HTMLInputElement | HTMLTextAreaElement)[]>([]);
   const currentIndexRef = useRef(0);
   const lastUsedIndexRef = useRef(-1);
   const monitorIntervalRef = useRef<NodeJS.Timeout>();
@@ -69,7 +69,7 @@ export function RfidScanner({
       const isProcessing = input.dataset.processing === 'true';
       const isProcessed = input.dataset.processed === 'true';
       const value = input.value || '';
-      const tagCount = value.split(/[ ,]+/).filter(Boolean).length;
+      const tagCount = value.split(/[ ,\n\r]+/).filter(Boolean).length;
       const timeActive = isActive 
         ? Math.floor((Date.now() - parseInt(input.dataset.startTime || "0")) / 1000)
         : 0;
@@ -107,7 +107,7 @@ export function RfidScanner({
   const focusActiveField = useCallback(() => {
     if (RFID_CONFIG.ENABLE_DUMMY_DATA) return; // Don't focus if dummy data is enabled
     
-    const activeInput = inputFieldsRef.current[currentIndexRef.current];
+    const activeInput = inputFieldsRef.current[currentIndexRef.current] as HTMLTextAreaElement;
     if (activeInput && activeInput.classList.contains('active')) {
       // Force visibility and enable the input
       activeInput.style.pointerEvents = 'auto';
@@ -187,7 +187,7 @@ export function RfidScanner({
         activeInput.value += bulkText;
         
         // Update live log instead of console (only if UI is visible)
-        const currentCount = activeInput.value.split(/[ ,]+/).filter(Boolean).length;
+        const currentCount = activeInput.value.split(/[ ,\n\r]+/).filter(Boolean).length;
         updateLiveLog({
           currentFieldTags: currentCount,
           lastAction: `Added ${tags.length} tags`,
@@ -206,15 +206,16 @@ export function RfidScanner({
 
     try {
       const index = inputFieldsRef.current.length + 1;
-      const input = document.createElement("input");
-      input.type = "text";
+      const input = document.createElement("textarea") as any; // Cast to handle both input and textarea
       input.readOnly = RFID_CONFIG.ENABLE_DUMMY_DATA; // Allow manual input when dummy data is disabled
       
       // Style the input field - make it visible for manual input
       if (!RFID_CONFIG.ENABLE_DUMMY_DATA) {
         // Make input visible and properly positioned for manual typing
         input.style.width = "100%";
-        input.style.height = "auto";
+        input.style.height = "80px"; // Set appropriate height for textarea
+        input.style.minHeight = "80px";
+        input.style.maxHeight = "200px";
         input.style.padding = "8px";
         input.style.border = "2px solid #10b981";
         input.style.borderRadius = "4px";
@@ -223,7 +224,9 @@ export function RfidScanner({
         input.style.position = "static";
         input.style.opacity = "1";
         input.style.display = "block";
-        input.placeholder = "Type RFID tags separated by commas or spaces...";
+        input.style.resize = "vertical";
+        input.style.fontFamily = "monospace"; // Use monospace for better readability
+        input.placeholder = "Type RFID tags separated by commas, spaces, or new lines (press Enter for new line)...";
       } else {
         input.style.display = "none"; // Completely hidden for dummy data mode
       }
@@ -232,6 +235,33 @@ export function RfidScanner({
       input.dataset.startTime = Date.now().toString();
       input.dataset.processing = "false";
       input.dataset.processed = "false";
+
+      // Add direct event listener to handle Enter key when input is focused
+      if (!RFID_CONFIG.ENABLE_DUMMY_DATA) {
+        input.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            // Allow Enter to create new line in textarea (default behavior)
+            // Don't prevent default to allow natural textarea behavior
+            e.stopPropagation(); // Prevent event bubbling
+          }
+        });
+        
+        // Also add input event listener to update counts in real-time
+        input.addEventListener('input', (e: Event) => {
+          const target = e.target as HTMLTextAreaElement;
+          const tags = target.value.split(/[ ,\n\r]+/).filter(Boolean);
+          const tagCount = tags.length;
+          
+          // Update live log if this is the active field
+          if (target.classList.contains('active')) {
+            updateLiveLog({
+              currentFieldTags: tagCount,
+              lastAction: `Updated: ${tagCount} tags entered`,
+              fieldStatus: tagCount > 0 ? "Collecting data" : "Waiting for data"
+            });
+          }
+        });
+      }
 
       // Make the first input active
       if (inputFieldsRef.current.length === 0) {
@@ -279,7 +309,7 @@ export function RfidScanner({
 
     try {
       const raw = currentInput.value.trim();
-      const tags = raw.split(/[ ,]+/).filter(Boolean);
+      const tags = raw.split(/[ ,\n\r]+/).filter(Boolean);
       const now = Date.now();
       const currentFieldNum = currentIndexRef.current + 1;
       const timeActive = now - parseInt(currentInput.dataset.startTime || "0");
@@ -474,7 +504,7 @@ export function RfidScanner({
     if (!input) return;
 
     const rawText = input.value.trim();
-    const tags = rawText.split(/[ ,]+/).filter(Boolean);
+    const tags = rawText.split(/[ ,\n\r]+/).filter(Boolean);
     const count = tags.length;
     const timeActive = Date.now() - parseInt(input.dataset.startTime || "0");
 
@@ -624,7 +654,11 @@ export function RfidScanner({
           } else if (e.key === 'Backspace') {
             activeInput.value = activeInput.value.slice(0, -1);
             activeInput.dispatchEvent(new Event('input', { bubbles: true }));
-          } else if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+          } else if (e.key === 'Enter') {
+            // Handle Enter key to add a new line character instead of just space
+            activeInput.value += '\n';
+            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+          } else if (e.key === ' ' || e.key === ',') {
             activeInput.value += ' ';
             activeInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
@@ -667,7 +701,7 @@ export function RfidScanner({
       inputFieldsRef.current.forEach((input, index) => {
         if (input && input.value.trim()) {
           const raw = input.value.trim();
-          const tags = raw.split(/[ ,]+/).filter(Boolean);
+          const tags = raw.split(/[ ,\n\r]+/).filter(Boolean);
           
           if (tags.length > 0) {
             totalRemainingTags += tags.length;
@@ -694,7 +728,7 @@ export function RfidScanner({
       // Count but don't process remaining tags
       inputFieldsRef.current.forEach((input) => {
         if (input && input.value.trim()) {
-          const tags = input.value.split(/[ ,]+/).filter(Boolean);
+          const tags = input.value.split(/[ ,\n\r]+/).filter(Boolean);
           totalRemainingTags += tags.length;
         }
       });
