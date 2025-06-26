@@ -9,7 +9,7 @@ export const RFID_CONFIG = {
   // ===== RFID COMPONENT =====
   
   /** Show/hide the entire RFID scanner component in frontend */
-  SHOW_RFID_SCANNER: false, // Set to false to completely hide RFID scanner from UI
+  SHOW_RFID_SCANNER: true, // Set to false to completely hide RFID scanner from UI
   
   // ===== FIELD CONFIGURATION ===== 
   
