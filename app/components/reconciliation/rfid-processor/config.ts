@@ -17,7 +17,7 @@ export const RFID_CONFIG = {
   MAX_TAGS_PER_FIELD: 50,
   
   /** Maximum time (ms) per input field before switching */
-  MAX_TIME_PER_FIELD: 5000, // 2 seconds
+  MAX_TIME_PER_FIELD: 2000, // 2 seconds
 
   /** Tag separators used by dummy generator */
   TAG_SEPARATORS: [",", " "],
