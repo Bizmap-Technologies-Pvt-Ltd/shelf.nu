@@ -14,7 +14,7 @@ export type ReconciliationBundle = {
   status: "Completed" | "In Progress";
   items: {
     rfidTag: string;
-    assetId: string;
+    assetId: string | null;
     assetName: string;
     category: string;
     status: "Available" | "In Use";
@@ -22,9 +22,23 @@ export type ReconciliationBundle = {
   }[];
 };
 
-export function ReconciliationBundlesTable({ bundles }: { bundles: ReconciliationBundle[] }) {
+export function ReconciliationBundlesTable({ bundles = [] }: { bundles?: ReconciliationBundle[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  if (bundles.length === 0) {
+  
+  // Debug log
+  console.log('Rendering ReconciliationBundlesTable with bundles:', bundles);
+  console.log('Bundles length:', bundles?.length || 0);
+  
+  // Filter out any invalid bundles (missing required properties)
+  const validBundles = (bundles || []).filter(bundle => 
+    bundle && 
+    typeof bundle === 'object' && 
+    'id' in bundle &&
+    'date' in bundle
+  );
+  
+  // Safety check for when bundles is undefined, null, or empty
+  if (!validBundles.length) {
     return (
       <div className="bg-white rounded-lg p-6 sm:p-8 text-center">
         <div className="max-w-md mx-auto">
@@ -55,7 +69,7 @@ export function ReconciliationBundlesTable({ bundles }: { bundles: Reconciliatio
             </tr>
           </thead>
           <tbody>
-            {bundles.map((bundle) => (
+            {validBundles.map((bundle) => (
               <Fragment key={bundle.id}>
                 <tr className="border-b hover:bg-gray-50 transition-colors">
                   <Td className="w-10 px-4 py-3">
@@ -78,7 +92,15 @@ export function ReconciliationBundlesTable({ bundles }: { bundles: Reconciliatio
                     </div>
                   </Td>
                   <Td className="px-4 py-3">
-                    <div className="text-sm text-gray-900">{bundle.date}</div>
+                    <div className="text-sm text-gray-900">
+                      {new Date(bundle.date).toLocaleDateString(undefined, { 
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
                   </Td>
                   <Td className="px-4 py-3">
                     <div className="text-sm text-gray-900 truncate" title={bundle.locationName}>
@@ -125,7 +147,7 @@ export function ReconciliationBundlesTable({ bundles }: { bundles: Reconciliatio
 
       {/* Mobile/Tablet Card View */}
       <div className="lg:hidden space-y-4 p-4">
-        {bundles.map((bundle) => (
+        {validBundles.map((bundle) => (
           <div key={bundle.id} className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="p-4 space-y-3">
               {/* Header Row */}
@@ -172,7 +194,15 @@ export function ReconciliationBundlesTable({ bundles }: { bundles: Reconciliatio
                   <CalendarIcon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="text-xs text-gray-500">Date</div>
-                    <div className="text-sm text-gray-900">{bundle.date}</div>
+                    <div className="text-sm text-gray-900">
+                      {new Date(bundle.date).toLocaleDateString(undefined, { 
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
                   </div>
                 </div>
 

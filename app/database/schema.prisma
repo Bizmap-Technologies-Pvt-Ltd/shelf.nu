@@ -58,6 +58,7 @@ model User {
   categories        Category[]
   notes             Note[]
   qrCodes           Qr[]
+  reconciliationBundles ReconciliationBundle[]
   scans             Scan[]
   tags              Tag[]
   roles             Role[]
@@ -124,6 +125,7 @@ model Asset {
   customFields AssetCustomFieldValue[]
   bookings     Booking[]
   reminders    AssetReminder[]
+  reconciliationItems ReconciliationItem[]
 
   // Special GIN index for optimization of simple search queries
   @@index([title(ops: raw("gin_trgm_ops")), description(ops: raw("gin_trgm_ops"))], type: Gin)
@@ -395,6 +397,7 @@ model Location {
   organizationId String
 
   assets Asset[]
+  reconciliationBundles ReconciliationBundle[]
 
   // @@unique([lower(name), organizationId]) //prisma doesnt support case insensitive unique index yet
   // Indexes for foreign keys
@@ -472,6 +475,7 @@ model Organization {
 
   members TeamMember[]
   assets  Asset[]
+  reconciliationBundles ReconciliationBundle[]
 
   image   Image?  @relation("orgImage", fields: [imageId], references: [id])
   imageId String? @unique
@@ -955,4 +959,64 @@ model WorkingHoursOverride {
   @@unique([workingHoursId, date])
   @@index([workingHoursId, date])
   @@index([date, isOpen])
+}
+
+enum ReconciliationStatus {
+  COMPLETED
+  IN_PROGRESS
+}
+
+model ReconciliationBundle {
+  id             String              @id @default(cuid())
+  bundleId       String              @unique // Customer-facing ID (REC-YYYYMMDD-XXXX)
+  date           DateTime            @default(now())
+  status         ReconciliationStatus @default(COMPLETED)
+  
+  // Relations
+  location       Location            @relation(fields: [locationId], references: [id])
+  locationId     String
+  
+  scannedBy      User                @relation(fields: [userId], references: [id])
+  userId         String
+  
+  organization   Organization        @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  organizationId String
+  
+  items          ReconciliationItem[]
+  
+  // Timestamps
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  
+  @@index([organizationId])
+  @@index([locationId])
+  @@index([userId])
+  @@index([date])
+}
+
+model ReconciliationItem {
+  id             String              @id @default(cuid())
+  rfidTag        String
+  
+  // Could be null if asset was not found in database
+  asset          Asset?              @relation(fields: [assetId], references: [id])
+  assetId        String?
+  
+  assetName      String              // Store at scanning time in case asset is deleted later
+  category       String?
+  status         String?
+  location       String?
+  locationMismatch Boolean           @default(false)
+  
+  // Relations
+  bundle         ReconciliationBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  bundleId       String
+  
+  // Timestamps
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  
+  @@index([bundleId])
+  @@index([rfidTag])
+  @@index([assetId])
 }

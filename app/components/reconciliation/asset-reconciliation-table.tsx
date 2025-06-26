@@ -3,7 +3,7 @@ import { Link } from "@remix-run/react";
 
 export type AssetReconciliationItem = {
   rfidTag: string;
-  assetId: string;
+  assetId: string | null;
   assetName: string;
   category: string;
   status: "Available" | "In Use" | "Unknown";

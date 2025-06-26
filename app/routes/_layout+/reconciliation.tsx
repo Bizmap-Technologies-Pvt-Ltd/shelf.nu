@@ -13,7 +13,7 @@ import { data, error } from "~/utils/http.server";
 import { ShelfError } from "~/utils/error";
 import { ScanRfidDialog } from "~/components/reconciliation/scan-rfid-dialog";
 import { ReconciliationBundlesTable } from "~/components/reconciliation/reconciliation-bundles-table";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { requirePermission } from "~/utils/roles.server";
 import { PermissionAction, PermissionEntity } from "~/utils/permissions/permission.data";
 import { getUserByID } from "~/modules/user/service.server";
@@ -54,7 +54,7 @@ type ReconciliationBundle = {
   status: "Completed" | "In Progress";
   items: {
     rfidTag: string;
-    assetId: string;
+    assetId: string | null;
     assetName: string;
     category: string;
     status: "Available" | "In Use";
@@ -82,10 +82,54 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       organizationId,
       request,
     });
+    
+    // Fetch reconciliation bundles from the API - using relative URL for environment portability
+    const apiUrl = new URL('/api/reconciliation', request.url).toString();
+    const bundlesResponse = await fetch(apiUrl, {
+      headers: {
+        Cookie: request.headers.get("Cookie") || "",
+      }
+    });
+    
+    let recentReconciliations: ReconciliationBundle[] = [];
+    
+    try {
+      if (bundlesResponse.ok) {
+        const bundlesData = await bundlesResponse.json();
+        // Extract bundles based on API response structure
+        if (bundlesData && Array.isArray(bundlesData.bundles)) {
+          
+          // Make sure we properly handle null assetIds
+          recentReconciliations = bundlesData.bundles
+            .filter((bundle: any) => bundle && typeof bundle === 'object') // Ensure we only process valid objects
+            .map((bundle: any) => {
+              return {
+                id: bundle.id || "",
+                date: bundle.date || new Date().toISOString(),
+                locationName: bundle.locationName || "Unknown Location", 
+                scannedBy: bundle.scannedBy || "Unknown User",
+                scannedByEmail: bundle.scannedByEmail || "unknown@example.com",
+                totalItems: bundle.totalItems || 0,
+                status: bundle.status || "Completed",
+                items: Array.isArray(bundle.items) ? bundle.items
+                  .filter((item: any) => item && typeof item === 'object') // Filter valid items
+                  .map((item: any) => ({
+                    rfidTag: item.rfidTag || "",
+                    assetId: item.assetId === null || item.assetId === undefined ? null : item.assetId,
+                    assetName: item.assetName || "Unknown Asset",
+                    category: item.category || "Unknown",
+                    status: item.status || "Unknown",
+                    location: item.location || "Unknown",
+                  })) : []
+              };
+            });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching reconciliation bundles:", error);
+    }
 
-    // In a real application, we would fetch this from a database
-    const recentReconciliations: ReconciliationBundle[] = [];
-
+    
     return json(data({
       header: {
         title: "Assets Reconciliation",
@@ -111,6 +155,8 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 export default function AssetsReconciliation() {
   const loaderData = useLoaderData<typeof loader>();
   
+
+  
   // Handle potential error state
   if ('error' in loaderData && loaderData.error) {
     return (
@@ -122,12 +168,49 @@ export default function AssetsReconciliation() {
     );
   }
   
-  const { header, recentReconciliations: initialBundles, organizationId, userOrganizations, currentUser, locations } = loaderData;
+  // Access loader data with proper typing
+  type LoaderData = {
+    header: HeaderData;
+    organizationId: string;
+    userOrganizations: any[];
+    currentUser: any;
+    locations: any[];
+    recentReconciliations: ReconciliationBundle[];
+  };
+  
+  const dataLayer = 'data' in loaderData ? loaderData.data as LoaderData : loaderData as LoaderData;
+  
+  // Extract properties safely
+  const header = dataLayer.header;
+  const organizationId = dataLayer.organizationId;
+  const userOrganizations = dataLayer.userOrganizations || [];
+  const currentUser = dataLayer.currentUser;
+  const locations = dataLayer.locations || [];
+  const recentReconciliations = dataLayer.recentReconciliations || [];
+  
+
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [scannedItems] = useAtom(scannedItemsAtom);
-  const [bundles, setBundles] = useState<ReconciliationBundle[]>(initialBundles);
+  
+  // Use the most recent data from the loader
+  // This ensures that on page refresh, we always show the latest data from the database
+  const [bundles, setBundles] = useState<ReconciliationBundle[]>(
+    recentReconciliations || []
+  );
+  
+  // Update bundles state when recentReconciliations changes
+  useEffect(() => {
+    if (recentReconciliations && Array.isArray(recentReconciliations) && recentReconciliations.length > 0) {
+      setBundles(recentReconciliations);
+    }
+  }, [recentReconciliations]);
 
-  const handleSaveBundle = (items: ScannedRfidItem[], locationId?: string) => {
+  const handleSaveBundle = async (items: ScannedRfidItem[], locationId?: string) => {
+    if (!locationId) {
+      return;
+    }
+
     // Create user display name from available user data
     let userName = "Unknown User";
     let userEmail = "unknown@example.com";
@@ -143,14 +226,17 @@ export default function AssetsReconciliation() {
     // Use the selected location name, fallback to asset location or "Unknown Location"
     let locationName = "Unknown Location";
     if (locationId && locations) {
-      const selectedLocation = locations.find((loc: any) => loc.id === locationId);
+      const selectedLocation = locations.find(loc => loc.id === locationId);
       locationName = selectedLocation?.name || "Unknown Location";
     } else if (items.length > 0 && items[0].asset?.location) {
       locationName = items[0].asset.location;
     }
     
+    const bundleId = generateBundleId();
+    
+    // Create the bundle object for local display
     const newBundle: ReconciliationBundle = {
-      id: generateBundleId(),
+      id: bundleId,
       date: new Date().toISOString(),
       locationName,
       scannedBy: userName,
@@ -159,7 +245,7 @@ export default function AssetsReconciliation() {
       status: "Completed",
       items: items.map(item => ({
         rfidTag: item.rfid,
-        assetId: item.asset?.id || "unknown",
+        assetId: item.asset?.id || null, // Use null instead of "unknown" string
         assetName: item.asset?.title || "Unknown Asset",
         category: item.asset?.category || "Uncategorized",
         status: item.asset?.status === "Available" ? "Available" : "In Use",
@@ -167,7 +253,39 @@ export default function AssetsReconciliation() {
       }))
     };
     
+    // Optimistically update the UI
     setBundles((prev) => [newBundle, ...prev]);
+    
+    try {
+      // Save to the database via API - using relative URL for environment portability
+      const response = await fetch('/api/reconciliation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bundleId,
+          locationId,
+          items: newBundle.items.map(item => ({
+            rfidTag: item.rfidTag,
+            assetId: item.assetId, // Already null if not found
+            assetName: item.assetName,
+            category: item.category,
+            status: item.status,
+            location: item.location,
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        // If the API call fails, we can show an error message
+        // and potentially try again or remove the optimistic update
+        const errorData = await response.json();
+        // Handle error appropriately - could add notification here
+      }
+    } catch (error) {
+      // Handle error appropriately - could add notification here
+    }
   };
 
   return (

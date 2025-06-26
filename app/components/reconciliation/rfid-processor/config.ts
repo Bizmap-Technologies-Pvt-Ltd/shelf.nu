@@ -30,7 +30,7 @@ export const RFID_CONFIG = {
   // ===== DUMMY DATA =====
   
   /** Enable/disable dummy RFID data generation */
-  ENABLE_DUMMY_DATA: false, // Set to false to disable dummy data generation completely
+  ENABLE_DUMMY_DATA: true, // Set to false to disable dummy data generation completely
   
   /** Interval (ms) for generating dummy RFID data */
   DUMMY_GENERATION_INTERVAL: 500, // 300ms
