@@ -60,7 +60,7 @@ export default function OnboardingChecklist() {
                   </div>
                   <div className="flex gap-3">
                     <Link
-                      to="https://www.shelf.nu/knowledge-base/adding-new-assets"
+                      to="https://www.tracora.bizmap.in/knowledge-base/adding-new-assets"
                       target="_blank"
                       className=" font-semibold text-gray-600"
                     >
@@ -100,7 +100,7 @@ export default function OnboardingChecklist() {
                   </div>
                   <div className="flex gap-3">
                     <Link
-                      to="https://www.shelf.nu/knowledge-base/using-categories-to-organize-your-asset-inventory"
+                      to="https://www.tracora.bizmap.in/knowledge-base/using-categories-to-organize-your-asset-inventory"
                       target="_blank"
                       className=" font-semibold text-gray-600"
                     >
@@ -177,12 +177,12 @@ export default function OnboardingChecklist() {
                     </h6>
                     <p className=" text-gray-600">
                       Track who has custody over an asset by adding your team
-                      members to shelf.
+                      members to Bizmap.
                     </p>
                   </div>
                   <div className="flex gap-3">
                     <Link
-                      to="https://www.shelf.nu/knowledge-base/onboarding-your-team-members"
+                      to="https://www.tracora.bizmap.in/knowledge-base/onboarding-your-team-members"
                       target="_blank"
                       className=" font-semibold text-gray-600"
                     >
@@ -222,7 +222,7 @@ export default function OnboardingChecklist() {
                   </div>
                   <div className="flex gap-3">
                     <Link
-                      to="https://www.shelf.nu/knowledge-base/custody-feature-for-long-term-equipment-lend-outs"
+                      to="https://www.tracora.bizmap.in/knowledge-base/custody-feature-for-long-term-equipment-lend-outs"
                       target="_blank"
                       className=" font-semibold text-gray-600"
                     >
@@ -242,7 +242,7 @@ export default function OnboardingChecklist() {
         <div className="mb-4">
           <h4 className=" text-lg font-semibold">Customize your experience</h4>
           <p className="text-[14px] text-gray-600">
-            Optimize your workflow and use Shelf in way that works for you and
+            Optimize your workflow and use Bizmap in way that works for you and
             your organizations.
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function OnboardingChecklist() {
                   </div>
                   <div className="flex gap-3">
                     <Link
-                      to="https://www.shelf.nu/knowledge-base/adding-additional-fields-to-assets"
+                      to="https://www.tracora.bizmap.in/knowledge-base/adding-additional-fields-to-assets"
                       target="_blank"
                       className=" font-semibold text-gray-600"
                     >

@@ -81,7 +81,7 @@ export async function loader({ context }: LoaderFunctionArgs) {
 
     const title = "Set up your account";
     const subHeading =
-      "You are almost ready to use Shelf. We just need some basic information to get you started.";
+      "You are almost ready to use Bizmap. We just need some basic information to get you started.";
 
     return json(
       data({
@@ -168,10 +168,10 @@ export async function action({ context, request }: ActionFunctionArgs) {
     if (config.sendOnboardingEmail) {
       /** Send onboarding email */
       sendEmail({
-        from: SMTP_FROM || `"Carlos from shelf.nu" <carlos@emails.shelf.nu>`,
-        replyTo: "carlos@shelf.nu",
+        from: SMTP_FROM || `"Carlos from bizmap" <carlos@emails.bizmap>`,
+        replyTo: "carlos@bizmap",
         to: user.email,
-        subject: "🏷️ Welcome to Shelf - can I ask you a question?",
+        subject: "🏷️ Welcome to Bizmap - can I ask you a question?",
         text: onboardingEmailText({ firstName: user.firstName as string }),
       });
     }
@@ -255,7 +255,7 @@ export default function Onboarding() {
         <div>
           <Input
             label="Username"
-            addOn="shelf.nu/"
+            addOn="bizmap/"
             type="text"
             name={zo.fields.username()}
             error={

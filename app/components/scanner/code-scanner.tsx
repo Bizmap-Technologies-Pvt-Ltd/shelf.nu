@@ -86,7 +86,7 @@ export const CodeScanner = ({
     }
   };
 
-  // Determine if we should allow non-shelf codes based on the current action
+  // Determine if we should allow non-Bizmap codes based on the current action
   const shouldAllowNonShelfCodes =
     allowNonShelfCodes || action !== "View asset";
 
@@ -278,7 +278,7 @@ function ScannerMode({
         onBlur={() => setInputIsFocused(false)}
       />
       <p className="mt-4 max-w-[360px] text-white/70">
-        Focus the field and use your barcode scanner to scan any Shelf QR code.
+        Focus the field and use your barcode scanner to scan any Bizmap QR code.
       </p>
     </div>
   );

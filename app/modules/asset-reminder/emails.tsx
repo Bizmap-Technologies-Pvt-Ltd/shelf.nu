@@ -33,7 +33,7 @@ export function assetAlertEmailText({
 
   const note = isOwner
     ? `You are receiving this email because the original person was removed from workspace ${workspaceName}.`
-    : `This email was sent to ${user.email} because it is part of the Shelf workspace ${workspaceName}. 
+    : `This email was sent to ${user.email} because it is part of the Bizmap workspace ${workspaceName}. 
 If you think you weren't supposed to have received this email please contact the owner of the workspace.`;
 
   return `Asset reminder notice
@@ -53,7 +53,7 @@ ${SERVER_URL}/assets/${asset.id}
 ${note}
 
 Thanks,
-The Shelf Team
+The Bizmap Team
 `;
 }
 
@@ -183,7 +183,7 @@ function AssetAlertEmailTemplate({
               <Text style={{ ...styles.p, marginBottom: "10px" }}>
                 This email was sent to{" "}
                 <span style={{ fontWeight: "bold" }}>{user.email}</span> because
-                it is part of the Shelf workspace{" "}
+                it is part of the Bizmap workspace{" "}
                 <span style={{ fontWeight: "bold" }}>{workspaceName}</span>.
               </Text>
               <Text style={{ ...styles.p, marginBottom: "48px" }}>

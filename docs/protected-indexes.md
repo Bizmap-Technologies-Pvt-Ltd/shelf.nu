@@ -20,4 +20,4 @@ This project maintains certain critical indexes that Prisma attempts to drop dur
 - If you need to modify these indexes, update the PROTECTED_INDEXES array in `prisma/protected-indexes.ts`
 - The protection script runs automatically after `prisma migrate dev` and `prisma migrate deploy`
 
-To find more information about the solution we have implemented you can refer to the PR that made the change [#1546](https://github.com/Shelf-nu/shelf.nu/pull/1546)
+To find more information about the solution we have implemented you can refer to the PR that made the change [#1546](https://github.com/Bizmap/bizmap/pull/1546)

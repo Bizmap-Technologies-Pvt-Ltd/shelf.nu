@@ -32,14 +32,14 @@ export function InstallPwaPromptModal() {
             <div className="relative z-10  rounded-xl bg-white p-4 shadow-lg">
               <div className="mb-8 text-center">
                 <h4 className="mb-1 text-[18px] font-semibold">
-                  Install shelf for mobile
+                  Install Bizmap for mobile
                 </h4>
                 <p className="text-gray-600">
-                  Always available access to shelf, with all features you have
+                  Always available access to bizmap, with all features you have
                   on desktop.{" "}
                   {promptInstall && (
                     <>
-                      Use the <strong>install button below</strong> to add shelf
+                      Use the <strong>install button below</strong> to add bizmap
                       to your device.
                     </>
                   )}
@@ -53,7 +53,7 @@ export function InstallPwaPromptModal() {
                       <li>
                         2. Click <strong>"Add to Home Screen"</strong>
                       </li>
-                      <li>3. Enjoy Shelf on your mobile device</li>
+                      <li>3. Enjoy Bizmap on your mobile device</li>
                     </ol>
 
                     <video
@@ -74,7 +74,7 @@ export function InstallPwaPromptModal() {
                 <p>
                   For more information, read the full{" "}
                   <Button
-                    to="https://www.shelf.nu/knowledge-base/shelf-mobile-app"
+                    to="https://www.tracora.bizmap.in/knowledge-base/bizmap-mobile-app"
                     variant="link"
                     target="_blank"
                     className="mt-4"

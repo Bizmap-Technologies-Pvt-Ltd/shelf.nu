@@ -1,6 +1,6 @@
-# Shelf SSO support and guide
+# Bizmap SSO support and guide
 
-Shelf currently supports SSO for multiple providers:
+ Bizmap currently supports SSO for multiple providers:
 
 - [Google Workspaces (formerly known as GSuite)](../docs/sso/providers/google-workspace.md)
 - Okta, Auth0

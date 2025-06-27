@@ -225,7 +225,7 @@ export function useSidebarNavItems() {
     // {
     //   type: "child",
     //   title: "Asset labels",
-    //   to: `https://store.shelf.nu/?ref=shelf_webapp_sidebar`,
+    //   to: `https://store.Bizmap/?ref=Bizmap_webapp_sidebar`,
     //   Icon: QrCodeIcon,
     //   target: "_blank",
     // },

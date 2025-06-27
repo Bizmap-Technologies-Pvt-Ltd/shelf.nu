@@ -146,15 +146,15 @@ export default function UserInvitesSetting() {
       <ContextualModal />
 
       <p className="mb-6 text-xs text-gray-600">
-        Users by default have a mail registered in shelf and can get reminders,
+        Users by default have a mail registered in Bizmap and can get reminders,
         log in or perform other actions. Read more about our{" "}
-        <Link
-          to="https://www.shelf.nu/knowledge-base/user-roles-and-their-permissions"
+        {/* <Link
+          to="https://www.tracora.bizmap.in/knowledge-base/user-roles-and-their-permissions"
           target="_blank"
           className="underline"
         >
           permissions here
-        </Link>
+        </Link> */}
         .
       </p>
 

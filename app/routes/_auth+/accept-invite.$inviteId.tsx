@@ -188,7 +188,7 @@ export default function AcceptInvite() {
       <div className=" flex  flex-col items-center text-center">
         <h2>Accept invite</h2>
         <p>
-          <strong>{inviter}</strong> invites you to join Shelf as a member of{" "}
+          <strong>{inviter}</strong> invites you to join Bizmap as a member of{" "}
           <strong>{workspace}’s</strong> workspace.
         </p>
         <Form method="post" className="my-3">

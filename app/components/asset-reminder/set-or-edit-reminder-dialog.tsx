@@ -130,7 +130,7 @@ export default function SetOrEditReminderDialog({
                 team member(s). Curious about the reminder mail?{" "}
                 <Button
                   variant="link"
-                  to="https://www.shelf.nu/knowledge-base/asset-reminders"
+                  to="https://www.tracora.bizmap.in/knowledge-base/asset-reminders"
                   target="_blank"
                 >
                   See a sample

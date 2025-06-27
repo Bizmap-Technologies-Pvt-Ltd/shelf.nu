@@ -27,7 +27,7 @@ export const ImportContent = () => (
       Import your own content by placing it in the csv file. Here you can{" "}
       <Button
         variant="link"
-        to="/static/shelf.nu-example-asset-import-from-content.csv"
+        to="/static/Bizmap.nu-example-asset-import-from-content.csv"
         target="_blank"
         download
       >
@@ -99,14 +99,14 @@ export const ImportContent = () => (
 
     <h4 className="mt-2">Importing with QR codes</h4>
     <div>
-      You also have the option to se a Shelf QR code for each asset. This is
-      very valuable if you already have Shelf QR codes printed and you want to
+      You also have the option to se a Bizmap QR code for each asset. This is
+      very valuable if you already have Bizmap QR codes printed and you want to
       link them to the assets you are importing.
       <br />
       This feature comes with the following limitations:
       <ul className="list-inside list-disc pl-4">
         <li>
-          <b>Existing code</b> - the QR code needs to already exist in shelf
+          <b>Existing code</b> - the QR code needs to already exist in Bizmap
         </li>
         <li>
           <b>No duplicate codes</b> - the qrId needs to be unique for each asset
@@ -143,7 +143,7 @@ export const ImportContent = () => (
       For more help, you can use our{" "}
       <Button
         variant="link"
-        to="https://www.shelf.nu/csv-helper"
+        to="https://www.Bizmap.nu/csv-helper"
         target="_blank"
       >
         CSV Helper Tool

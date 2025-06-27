@@ -168,7 +168,7 @@ export default function SubscriptionPage() {
               <span className="font-semibold">CUSTOM</span> plan
             </>
           )}{" "}
-          of Shelf.
+          of  Bizmap 
           <br />
           {isEnterprise && <>That means you have a custom plan. </>}
           To get more information about your plan, please{" "}
@@ -192,7 +192,7 @@ export default function SubscriptionPage() {
               </div>
               <p className="text-[14px] font-medium text-gray-700">
                 You’re currently using the{" "}
-                <span className="font-semibold">FREE</span> version of Shelf
+                <span className="font-semibold">FREE</span> version of Bizmap
               </p>
             </div>
           </div>

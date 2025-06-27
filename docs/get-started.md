@@ -1,6 +1,6 @@
-### Shelf's current stack
+### Bizmap's current stack
 
-Shelf's basic setup is based on a Remix stack by [rphlmr](https://github.com/rphlmr): https://github.com/rphlmr/supa-fly-stack
+Bizmap's basic setup is based on a Remix stack by [rphlmr](https://github.com/rphlmr): https://github.com/rphlmr/supa-fly-stack
 
 ## What's in the stack
 
@@ -21,7 +21,7 @@ Shelf's basic setup is based on a Remix stack by [rphlmr](https://github.com/rph
 
 ## Docker
 
-If you prefer to run shelf locally or host your live app via docker, please check our [Docker](./docker.md) documentation.
+If you prefer to run bizmap locally or host your live app via docker, please check our [Docker](./docker.md) documentation.
 
 > [!NOTE]
 > Currently we dont have a docker setup that also includes self hositng supabase. Once released the docker documentation will be updated to include it as well.
@@ -139,8 +139,8 @@ Prior to your first deployment, you'll need to do a few things:
 - Create two apps on Fly, one for staging and one for production:
 
   ```sh
-  fly apps create shelf-webapp
-  fly apps create shelf-webapp-staging  # ** not mandatory if you don't want a staging environment **
+  fly apps create Bizmap -webapp
+  fly apps create Bizmap -webapp-staging  # ** not mandatory if you don't want a staging environment **
   ```
 
   > **Note:** For production app, make sure this name matches the `app` set in your `fly.toml` file. Otherwise, you will not be able to deploy.
@@ -182,16 +182,16 @@ Prior to your first deployment, you'll need to do a few things:
   fly secrets set SMTP_PORT=465
   fly secrets set SMTP_USER="you@example.com"
   fly secrets set SMTP_PWD="yourSMTPpassword"
-  fly secrets set SMTP_FROM="Carlos from shelf.nu" <carlos@shelf.nu>
+  fly secrets set SMTP_FROM="Carlos from bizmap" <carlos@bizmap>
 
 
   # staging (specify --app name) ** not mandatory if you don't want a staging environnement **
-  fly secrets set SESSION_SECRET=$(openssl rand -hex 32) --app shelf-webapp-staging
-  fly secrets set SUPABASE_URL="https://{YOUR_STAGING_INSTANCE_NAME}.supabase.co" --app shelf-webapp-staging
-  fly secrets set SUPABASE_SERVICE_ROLE="{STAGING_SUPABASE_SERVICE_ROLE}" --app shelf-webapp-staging
-  fly secrets set SUPABASE_ANON_PUBLIC="{STAGING_SUPABASE_ANON_PUBLIC}" --app shelf-webapp-staging
-  fly secrets set DATABASE_URL="postgres://{USER}:{PASSWORD}@{HOST}:6543/{DB_NAME}?pgbouncer=true&connection_limit=1" --app shelf-webapp-staging
-  fly secrets set SERVER_URL="https://{YOUR_STAGING_SERVEUR_URL}" --app shelf-webapp-staging
+  fly secrets set SESSION_SECRET=$(openssl rand -hex 32) --app Bizmap -webapp-staging
+  fly secrets set SUPABASE_URL="https://{YOUR_STAGING_INSTANCE_NAME}.supabase.co" --app Bizmap -webapp-staging
+  fly secrets set SUPABASE_SERVICE_ROLE="{STAGING_SUPABASE_SERVICE_ROLE}" --app Bizmap -webapp-staging
+  fly secrets set SUPABASE_ANON_PUBLIC="{STAGING_SUPABASE_ANON_PUBLIC}" --app Bizmap -webapp-staging
+  fly secrets set DATABASE_URL="postgres://{USER}:{PASSWORD}@{HOST}:6543/{DB_NAME}?pgbouncer=true&connection_limit=1" --app Bizmap -webapp-staging
+  fly secrets set SERVER_URL="https://{YOUR_STAGING_SERVEUR_URL}" --app Bizmap -webapp-staging
 
   ```
 
@@ -310,8 +310,8 @@ To do that navigate to Authentication > URL configuration and add the following 
 
 ## Premium
 
-Shelf hosted version has some premium features that are locked behind different tiers of subscriptions. By default those features are disabled. To enable them add the env variable.
-Moreover if you don't have different servers and environments, you can directly adjust the value in shelf.config.ts
+ Bizmap hosted version has some premium features that are locked behind different tiers of subscriptions. By default those features are disabled. To enable them add the env variable.
+Moreover if you don't have different servers and environments, you can directly adjust the value in Bizmap .config.ts
 
 ```
 ENABLE_PREMIUM_FEATURES="true"

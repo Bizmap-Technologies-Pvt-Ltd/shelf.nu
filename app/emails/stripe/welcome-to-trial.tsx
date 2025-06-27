@@ -16,7 +16,7 @@ import { styles } from "../styles";
 
 export const sendTeamTrialWelcomeEmail = ({ email }: { email: string }) => {
   try {
-    const subject = `Your Shelf Team Trial is Ready - Next Steps`;
+    const subject = `Your Bizmap Team Trial is Ready - Next Steps`;
     const html = welcomeToTrialEmailHtml();
     const text = welcomeToTrialEmailText();
 
@@ -41,28 +41,28 @@ export const sendTeamTrialWelcomeEmail = ({ email }: { email: string }) => {
 /**
  * THis is the text version of the onboarding email
  */
-export const welcomeToTrialEmailText = () => `Dear Shelf user,
-Carlos Virreira here, Co-founder of Shelf Asset Management, Inc. I'm thrilled to inform you that your Shelf Team Trial has been activated! This is an excellent step towards more efficient asset management for your team.
+export const welcomeToTrialEmailText = () => `Dear Bizmap user,
+Carlos Virreira here, Co-founder of Bizmap Asset Management, Inc. I'm thrilled to inform you that your Bizmap Team Trial has been activated! This is an excellent step towards more efficient asset management for your team.
 
 To get started with your trial:
 
 Create Your Team Workspace:
 
-Visit https://app.shelf.nu/account-details/workspace to see all your workspaces. You'll find a "NEW WORKSPACE" button enabled - click this to create your team workspace if you haven't already.
+Visit https://app.bizmap/account-details/workspace to see all your workspaces. You'll find a "NEW WORKSPACE" button enabled - click this to create your team workspace if you haven't already.
 
 
 Add Your First Assets:
-Start populating your inventory to see Shelf in action. Don't forget to try our QR code feature for easy asset tracking.
+Start populating your inventory to see Bizmap in action. Don't forget to try our QR code feature for easy asset tracking.
 
 
 Invite Team Members:
-Collaboration is key. Add your colleagues to truly experience the power of Shelf.
+Collaboration is key. Add your colleagues to truly experience the power of Bizmap.
 
 
 Explore Key Features:
-Custom Fields: Tailor Shelf to your specific needs - https://www.shelf.nu/knowledge-base/custom-field-types-in-shelf
-Bookings: Efficiently manage equipment reservations - https://www.shelf.nu/knowledge-base/use-case-scenarios-explaing-our-bookings-feature
-Kits: Group related assets for easier management - https://www.shelf.nu/features/kits
+Custom Fields: Tailor Bizmap to your specific needs - https://www.tracora.bizmap.in/knowledge-base/custom-field-types-in-bizmap
+Bookings: Efficiently manage equipment reservations - https://www.tracora.bizmap.in/knowledge-base/use-case-scenarios-explaing-our-bookings-feature
+Kits: Group related assets for easier management - https://www.tracora.bizmap.in/features/kits
 
 Need help? Our support team is ready to assist you. Check out our Knowledge Base for quick answers, or reach out directly at ${SUPPORT_EMAIL}.
 
@@ -70,7 +70,7 @@ Remember, your trial gives you full access to all our premium features. Make the
 
 Happy asset tracking,
 Carlos Virreira
-Co-founder, Shelf Asset Management, Inc.
+Co-founder, Bizmap Asset Management, Inc.
 P.S. Have questions or feedback? I'd love to hear from you. Reply directly to this email, and let's chat!
 `;
 
@@ -80,17 +80,17 @@ function WelcomeToTrialEmailTemplate() {
   return (
     <Html>
       <Head>
-        <title>Your Shelf Team Trial is Ready - Next Steps</title>
+        <title>Your Bizmap Team Trial is Ready - Next Steps</title>
       </Head>
 
       <Container style={{ padding: "32px 16px", maxWidth: "100%" }}>
         <LogoForEmail />
 
         <div style={{ paddingTop: "8px" }}>
-          Dear Shelf user,
+          Dear Bizmap user,
           <Text style={{ marginBottom: "24px", ...styles.p }}>
-            Carlos Virreira here, Co-founder of Shelf Asset Management, Inc. I'm
-            thrilled to inform you that your Shelf Team Trial has been
+            Carlos Virreira here, Co-founder of Bizmap Asset Management, Inc. I'm
+            thrilled to inform you that your Bizmap Team Trial has been
             activated! This is an excellent step towards more efficient asset
             management for your team.
             <br />
@@ -113,31 +113,31 @@ function WelcomeToTrialEmailTemplate() {
             </li>
             <li>
               Add Your First Assets: Start populating your inventory to see
-              Shelf in action. Don't forget to try our QR code feature for easy
+              Bizmap in action. Don't forget to try our QR code feature for easy
               asset tracking.
             </li>
             <li>
               Invite Team Members: Collaboration is key. Add your colleagues to
-              truly experience the power of Shelf.
+              truly experience the power of Bizmap.
             </li>
           </ol>
           <h2>Explore Key Features:</h2>
           <Link
-            href="https://www.shelf.nu/knowledge-base/custom-field-types-in-shelf"
+            href="https://www.tracora.bizmap.in/knowledge-base/custom-field-types-in-bizmap"
             style={{ color: emailPrimaryColor }}
           >
-            Custom Fields: Tailor Shelf to your specific needs
+            Custom Fields: Tailor Bizmap to your specific needs
           </Link>
           <br />
           <Link
-            href="https://www.shelf.nu/knowledge-base/use-case-scenarios-explaing-our-bookings-feature"
+            href="https://www.tracora.bizmap.in/knowledge-base/use-case-scenarios-explaing-our-bookings-feature"
             style={{ color: emailPrimaryColor }}
           >
             Bookings: Efficiently manage equipment reservations
           </Link>
           <br />
           <Link
-            href="https://www.shelf.nu/features/kits"
+            href="https://www.tracora.bizmap.in/features/kits"
             style={{ color: emailPrimaryColor }}
           >
             Kits: Group related assets for easier management
@@ -154,7 +154,7 @@ function WelcomeToTrialEmailTemplate() {
             <br />
             Happy asset tracking, <br />
             Carlos Virreira <br />
-            Co-founder, Shelf Asset Management, Inc.
+            Co-founder, Bizmap Asset Management, Inc.
             <br />
             P.S. Have questions or feedback? I'd love to hear from you. Reply
             directly to this email, and let's chat!

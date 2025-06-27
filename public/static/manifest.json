@@ -1,7 +1,7 @@
 {
-  "name": "shelf",
+  "name": "bizmap",
   "lang": "en-US",
-  "short_name": "shelf",
+  "short_name": "bizmap",
   "description": "Open Source Asset and Equipment tracking software that lets you create QR asset labels, manage and overview your assets across locations.",
   "start_url": "/",
   "display": "standalone",

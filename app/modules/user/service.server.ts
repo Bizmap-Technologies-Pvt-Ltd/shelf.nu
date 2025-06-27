@@ -144,7 +144,7 @@ export async function createUserOrAttachOrg({
     /**
      * If user does not exist, create a new user and attach the org to it
      * WE have a case where a user registers which only creates an auth account and before confirming their email they try to accept an invite
-     * This will always fail because we need them to confirm their email before we create a user in shelf
+     * This will always fail because we need them to confirm their email before we create a user in bizmap
      */
     if (!shelfUser?.id) {
       const authAccount = await createEmailAuthAccount(email, password).catch(
@@ -272,7 +272,7 @@ export async function createUserFromSSO(
         cause: null,
         title: "No groups assigned",
         message:
-          "The user has no groups assigned that are available in shelf. Please contact an administrator for more information",
+          "The user has no groups assigned that are available in bizmap. Please contact an administrator for more information",
         label: "Auth",
         additionalData: { roles, organizations, email, userId },
       });
@@ -491,7 +491,7 @@ export async function updateUserFromSSO(
         cause: null,
         title: "No groups assigned",
         message:
-          "The user has no groups assigned that are available in shelf. Please contact an administrator for more information",
+          "The user has no groups assigned that are available in bizmap. Please contact an administrator for more information",
         label: "Auth",
         additionalData: { desiredRoles, domainOrganizations, email, userId },
       });
@@ -736,7 +736,7 @@ export async function updateUser<T extends Prisma.UserInclude>(
 }
 
 /**
- * Updates user email in both the auth and shelf databases
+ * Updates user email in both the auth and bizmap databases
  * If for some reason the user update fails we should also revenrt the auth account update
  */
 export async function updateUserEmail({
@@ -784,7 +784,7 @@ export async function updateUserEmail({
         // Unique email constraint is being handled automatically by `getSupabaseAdmin().auth.admin.generateLink`
         throw new ShelfError({
           cause,
-          message: "Failed to update email in shelf",
+          message: "Failed to update email in Bizmap.",
           additionalData: { userId, newEmail, currentEmail },
           label,
         });
@@ -951,7 +951,7 @@ export async function updateProfilePicture({
  * To comply with regulations, we will destroy all personal data related to the user
  *
  * To soft delete the user we do the following:
- * 1. Update the user email to: deleted+{randomId}@deleted.shelf.nu
+ * 1. Update the user email to: deleted+{randomId}@deleted.bizmap
  * 2. Update the user username to: deleted+{randomId}
  * 3. Update the user firstName to: Deleted
  * 4. Update the user lastName to: User
@@ -1014,7 +1014,7 @@ export async function softDeleteUser(id: User["id"]) {
       await tx.user.update({
         where: { id },
         data: {
-          email: `deleted+${randomId}@deleted.shelf.nu`,
+          email: `deleted+${randomId}@deleted.bizmap`,
           username: `deleted+${randomId}`,
           firstName: "Deleted",
           lastName: "User",
@@ -1043,7 +1043,7 @@ export async function softDeleteUser(id: User["id"]) {
     void sendEmail({
       to: user.email,
       subject: "Your account has been deleted",
-      text: `Your shelf account has been deleted. \n\n Kind regards, \n Shelf Team\n\n`,
+      text: `Your bizmap account has been deleted. \n\n Kind regards, \n Bizmap Team\n\n`,
     });
 
     if (error) {

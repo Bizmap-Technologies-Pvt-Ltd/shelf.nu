@@ -71,7 +71,7 @@ export async function resolveUserAndOrgForSsoCallback({
           cause: null,
           title: "User already exists",
           message:
-            "It looks like the email you're using is linked to a personal account in Shelf. Please contact our support team to update your personal workspace to a different email account.",
+            "It looks like the email you're using is linked to a personal account in Bizmap. Please contact our support team to update your personal workspace to a different email account.",
           label: "Auth",
         });
       }

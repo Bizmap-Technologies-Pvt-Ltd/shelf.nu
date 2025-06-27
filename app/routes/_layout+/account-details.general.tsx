@@ -175,7 +175,7 @@ export async function action({ context, request }: ActionFunctionArgs) {
         }
 
         sendEmail({
-          to: ADMIN_EMAIL || `"Shelf" <updates@emails.shelf.nu>`,
+          to: ADMIN_EMAIL || `"Bizmap" <updates@emails.Bizmap.nu>`,
           subject: "Delete account request",
           text: `User with id ${userId} and email ${payload.email} has requested to delete their account. \n User: ${SERVER_URL}/admin-dashboard/${userId} \n\n Reason: ${reason}\n\n`,
         });
@@ -183,7 +183,7 @@ export async function action({ context, request }: ActionFunctionArgs) {
         sendEmail({
           to: payload.email,
           subject: "Delete account request received",
-          text: `We have received your request to delete your account. It will be processed within 72 hours.\n\n Kind regards,\nthe Shelf team \n\n`,
+          text: `We have received your request to delete your account. It will be processed within 72 hours.\n\n Kind regards,\nthe Bizmap team \n\n`,
         });
 
         sendNotification({
@@ -239,7 +239,7 @@ export async function action({ context, request }: ActionFunctionArgs) {
         // Send email with OTP using our email service
         sendEmail({
           to: newEmail,
-          subject: `🔐 Shelf verification code: ${linkData.properties.email_otp}`,
+          subject: `🔐 Bizmap verification code: ${linkData.properties.email_otp}`,
           text: changeEmailAddressTextEmail({
             otp: linkData.properties.email_otp,
             user,
@@ -430,7 +430,7 @@ export default function UserPage() {
           <Input
             label="Username"
             hideLabel={true}
-            addOn="shelf.nu/"
+            addOn="bizmap.in/"
             type="text"
             name={zo.fields.username()}
             defaultValue={user?.username || undefined}

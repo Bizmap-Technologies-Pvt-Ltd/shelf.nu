@@ -117,7 +117,7 @@ export function AvailabilityLabel({
 
   if (isCheckedOut) {
     /** We get the current active booking that the asset is checked out to so we can use its name in the tooltip contnet
-     * NOTE: This will currently not work as we are returning only overlapping bookings with the query. I leave to code and we can solve it by modifying the DB queries: https://github.com/Shelf-nu/shelf.nu/pull/555#issuecomment-1877050925
+     * NOTE: This will currently not work as we are returning only overlapping bookings with the query. I leave to code and we can solve it by modifying the DB queries: https://github.com/Bizmap/Bizmap/pull/555#issuecomment-1877050925
      */
     const currentBooking = asset?.bookings?.find(
       (b) =>

@@ -1,4 +1,4 @@
-# shelf.config.ts
+# Bizmap .config.ts
 
 This file has a few configuration options, that are used to adjust and disable certain functionalities.
 
@@ -26,7 +26,7 @@ sendOnboardingEmail: true;
 
 ## enablePremiumFeatures
 
-Choose whether you want premium features to be enabled. Setting this to false will allow your users to use all features of shelf, without limitations.
+Choose whether you want premium features to be enabled. Setting this to false will allow your users to use all features of Bizmap , without limitations.
 
 ```ts
 //remix.config.ts

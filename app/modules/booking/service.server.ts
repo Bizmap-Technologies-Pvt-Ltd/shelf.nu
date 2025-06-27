@@ -546,7 +546,7 @@ export async function reserveBooking({
         : bookingFound.custodianTeamMember?.name ?? "";
 
       /** Prepare email content */
-      const subject = `✅ Booking reserved (${bookingFound.name}) - shelf.nu`;
+      const subject = `✅ Booking reserved (${bookingFound.name}) - bizmap`;
 
       const text = assetReservedEmailContent({
         bookingName: bookingFound.name,
@@ -575,7 +575,7 @@ export async function reserveBooking({
           organizationId,
         });
 
-        const adminSubject = `Booking reservation request (${bookingFound.name}) by ${custodian} - shelf.nu`;
+        const adminSubject = `Booking reservation request (${bookingFound.name}) by ${custodian} - bizmap`;
 
         sendEmail({
           to: adminsEmails.join(","),
@@ -869,7 +869,7 @@ export async function checkinBooking({
         ? `${updatedBooking.custodianUser.firstName} ${updatedBooking.custodianUser.lastName}`
         : updatedBooking.custodianTeamMember?.name ?? "";
 
-      const subject = `🎉 Booking completed (${updatedBooking.name}) - shelf.nu`;
+      const subject = `🎉 Booking completed (${updatedBooking.name}) - bizmap`;
       const text = completedBookingEmailContent({
         bookingName: updatedBooking.name,
         assetsCount: updatedBooking._count.assets,
@@ -1075,7 +1075,7 @@ export async function cancelBooking({
     await cancelScheduler(booking);
 
     if (booking.custodianUser?.email) {
-      const subject = `Booking canceled (${booking.name}) - shelf.nu`;
+      const subject = `Booking canceled (${booking.name}) - bizmap`;
       const text = cancelledBookingEmailContent({
         bookingName: booking.name,
         assetsCount: booking._count.assets,
@@ -1287,7 +1287,7 @@ export async function extendBooking({
 
       sendEmail({
         to: updatedBooking.custodianUser.email,
-        subject: `Booking extended (${updatedBooking.name}) - shelf.nu`,
+        subject: `Booking extended (${updatedBooking.name}) - bizmap`,
         text,
         html,
       });
@@ -1671,7 +1671,7 @@ export async function removeAssets({
      * So we need to set it back to AVAILABLE
      * We only do that if the booking we removed it from is ongoing or overdue.
      * Reason is that the user can add an asset to a draft booking and remove it and that will reset its status back to available, which shouldnt happen
-     * https://github.com/Shelf-nu/shelf.nu/issues/703#issuecomment-1944315975
+     * https://github.com/Bizmap/bizmap/issues/703#issuecomment-1944315975
      *
      * Because prisma doesnt support transactional execution of nested queries, we need to do them in 2 steps, because if the disconnect runs first,
      * the updateMany will not find the assets in the booking anymore and wont update them
@@ -1759,7 +1759,7 @@ export async function deleteBooking(
 
     const email = b.custodianUser?.email;
     if (email) {
-      const subject = `🗑️ Booking deleted (${b.name}) - shelf.nu`;
+      const subject = `🗑️ Booking deleted (${b.name}) - bizmap`;
       const text = deletedBookingEmailContent({
         bookingName: b.name,
         assetsCount: b._count.assets,
@@ -2173,7 +2173,7 @@ export async function bulkDeleteBookings({
 
     const emailConfigs = bookingsToSendEmail.map((b) => ({
       to: b.custodianUser?.email ?? "",
-      subject: `🗑️ Booking deleted (${b.name}) - shelf.nu`,
+      subject: `🗑️ Booking deleted (${b.name}) - bizmap`,
       text: deletedBookingEmailContent({
         bookingName: b.name,
         assetsCount: b.assets.length,
@@ -2407,7 +2407,7 @@ export async function bulkCancelBookings({
     /** Sending cancellation emails */
     await Promise.all(
       bookingsToSendEmail.map((b) => {
-        const subject = `❌ Booking cancelled (${b.name}) - shelf.nu`;
+        const subject = `❌ Booking cancelled (${b.name}) - bizmap`;
         const text = cancelledBookingEmailContent({
           bookingName: b.name,
           assetsCount: b._count.assets,

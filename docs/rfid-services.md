@@ -384,4 +384,4 @@ if (availability.isAvailable) {
 }
 ```
 
-This RFID service provides a robust foundation for RFID-based asset management in your Shelf application.
+This RFID service provides a robust foundation for RFID-based asset management in your Bizmap application.

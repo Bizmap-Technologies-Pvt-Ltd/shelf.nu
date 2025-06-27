@@ -1,4 +1,4 @@
-app = "shelf-webapp"
+app = "Bizmap-webapp"
 primary_region = "ams"
 kill_signal = "SIGINT"
 kill_timeout = "5s"

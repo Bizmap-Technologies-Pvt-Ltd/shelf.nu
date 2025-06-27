@@ -188,7 +188,7 @@ function AdvancedAssetIndexFilters() {
         <Button
           variant="link"
           target="_blank"
-          to="https://www.shelf.nu/knowledge-base/advanced-asset-index"
+          to="https://www.tracora.bizmap.in/knowledge-base/advanced-asset-index"
           className="whitespace-nowrap"
         >
           Advanced Index - Explained

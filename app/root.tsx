@@ -57,7 +57,7 @@ export const links: LinksFunction = () => [
 
 export const meta: MetaFunction = () => [
   {
-    title: "shelf.nu",
+    title: "bizmap",
   },
 ];
 
@@ -136,7 +136,7 @@ function App() {
         "Apologies, we’re down for scheduled maintenance. Please try again later."
       }
       cta={{
-        to: "https://www.shelf.nu/blog-categories/updates-maintenance",
+        to: "https://www.tracora.bizmap.in/blog-categories/updates-maintenance",
         text: "Learn more",
       }}
       icon="tool"

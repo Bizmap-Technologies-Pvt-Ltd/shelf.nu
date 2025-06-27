@@ -10,18 +10,18 @@ import When from "../when/when";
 export const ShelfSidebarLogo = ({ minimized }: { minimized: boolean }) => {
   const { logoPath } = config;
 
-  /** If a custom logo is used, we just use that instead of doing the dynamic shelf typograpy */
+  /** If a custom logo is used, we just use that instead of doing the dynamic Bizmap typograpy */
   if (logoPath) {
     return minimized ? (
       <img
         src={logoPath.symbol}
-        alt="Shelf Logo"
+        alt="Bizmap Logo"
         className="mx-1.5 inline h-[50px] transition duration-150 ease-linear"
       />
     ) : (
       <img
         src={logoPath.fullLogo}
-        alt="Shelf Logo"
+        alt="Bizmap Logo"
         className="mx-1.5 inline h-[50px] transition duration-150 ease-linear"
       />
     );
@@ -31,7 +31,7 @@ export const ShelfSidebarLogo = ({ minimized }: { minimized: boolean }) => {
     <>
       <img
         src="/static/images/shelf-symbol.png"
-        alt="Shelf Logo"
+        alt="Bizmap Logo"
         className="mx-1.5 inline h-[32px]"
       />
       <When truthy={!minimized}>
@@ -50,7 +50,7 @@ export const ShelfMobileLogo = () => {
   const { logoPath } = config;
 
   if (logoPath) {
-    return <img src={logoPath.fullLogo} alt="Shelf Logo" className="h-[46px]" />;
+    return <img src={logoPath.fullLogo} alt="Bizmap Logo" className="h-[46px]" />;
   }
 
   return (
@@ -67,10 +67,10 @@ export const ShelfMobileLogo = () => {
  */
 export const ShelfSymbolLogo = ({ className }: { className?: string }) => {
   const { logoPath } = config;
-  const classes = tw("mx-auto mb-2 size-12", className);
+  const classes = tw("mx-auto mb-2 size-[70px]", className);
 
   if (logoPath) {
-    return <img src={logoPath.symbol} alt="Shelf Logo" className={classes} />;
+    return <img src={logoPath.symbol} alt="Bizmap Logo" className={classes} />;
   }
 
   return (
@@ -86,7 +86,7 @@ export const ShelfFullLogo = ({ className }: { className?: string }) => {
   const classes = tw(className);
 
   if (logoPath) {
-    return <img src={logoPath.fullLogo} alt="Shelf Logo" className={classes} />;
+    return <img src={logoPath.fullLogo} alt="Bizmap Logo" className={classes} />;
   }
 
   return (

@@ -109,7 +109,7 @@ export function AdvancedIndexColumn({
             variant="link"
             className="text-gray text-end font-normal underline hover:text-gray-600"
             target="_blank"
-            to={`${customFieldDisplayValue}?ref=shelf-webapp`}
+            to={`${customFieldDisplayValue}?ref=bizmap-webapp`}
           >
             {customFieldDisplayValue as string}
           </Button>

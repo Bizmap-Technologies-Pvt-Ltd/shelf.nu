@@ -29,7 +29,7 @@ export function InvitationEmailTemplate({
   return (
     <Html>
       <Head>
-        <title>Invitation to join Shelf</title>
+        <title>Invitation to join Bizmap</title>
       </Head>
 
       <Container style={{ padding: "32px 16px", maxWidth: "100%" }}>
@@ -40,7 +40,7 @@ export function InvitationEmailTemplate({
             Howdy,
             <br />
             {invite.inviter.firstName} {invite.inviter.lastName} invites you to
-            join Shelf as a member of {invite.organization.name}
+            join Bizmap as a member of {invite.organization.name}
             's workspace. Click the link to accept the invite:
           </Text>
 
@@ -99,10 +99,10 @@ export function InvitationEmailTemplate({
 
           <Text style={{ marginBottom: "32px", ...styles.p }}>
             Thanks, <br />
-            The Shelf team
+            The Bizmap team
           </Text>
           <Text style={{ fontSize: "14px", color: "#344054" }}>
-            This is an automatic email sent from shelf.nu to{" "}
+            This is an automatic email sent from bizmap to{" "}
             <span style={{ color: emailPrimaryColor }}>
               {invite.inviteeEmail}
             </span>

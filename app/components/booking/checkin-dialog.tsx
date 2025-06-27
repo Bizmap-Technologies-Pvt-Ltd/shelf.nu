@@ -51,7 +51,7 @@ export default function CheckinDialog({
   }
 
   /**
-   * We have to make sure the current time is before the `from` date of the booking. See details: https://github.com/Shelf-nu/shelf.nu/issues/1839
+   * We have to make sure the current time is before the `from` date of the booking. See details: https://github.com/Bizmap/bizmap/issues/1839
    */
   const currentTimeIsBeforeFrom = new Date() < new Date(booking.from);
 

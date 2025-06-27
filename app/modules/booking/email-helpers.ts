@@ -52,7 +52,7 @@ To view the booking, follow the link below:
 ${SERVER_URL}/bookings/${bookingId}
 
 Thanks,
-The Shelf Team
+The Bizmap Team
 `;
 };
 
@@ -97,7 +97,7 @@ export function sendCheckinReminder(
 ) {
   sendEmail({
     to: booking.custodianUser!.email,
-    subject: `🔔 Checkin reminder (${booking.name}) - shelf.nu`,
+    subject: `🔔 Checkin reminder (${booking.name}) - bizmap`,
     text: checkinReminderEmailContent({
       hints,
       bookingName: booking.name,

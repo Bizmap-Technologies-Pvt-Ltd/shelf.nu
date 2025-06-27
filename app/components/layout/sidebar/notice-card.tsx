@@ -17,7 +17,7 @@ export const SidebarNoticeCard = () => {
     <div className="support-banner mb-6 hidden rounded border bg-gray-50 px-2 py-3 md:block">
       <div className="flex justify-between align-middle">
         <h5 className="mb-1 font-semibold text-gray-900">
-          Install Shelf for Mobile
+          Install Bizmap for Mobile
         </h5>
         <div className="mt-[-6px]">
           <fetcher.Form
@@ -33,17 +33,17 @@ export const SidebarNoticeCard = () => {
       </div>
 
       <p className="text-gray-600">
-        Always available access to shelf, with all features you have on desktop.
+        Always available access to Bizmap, with all features you have on desktop.
       </p>
       <img
         src="/static/images/carlos-support.jpg"
-        alt="Carlos support shelf.nu"
+        alt="Carlos support bizmap.in"
         className="my-4 rounded"
       />
       <p>
         <Button
           variant="link"
-          to="https://www.shelf.nu/blog/new-shelf-pwa-progresive-web-application-live-learn-how-to-use"
+          to="https://www.tracora.bizmap.in/blog/new-bizmap-pwa-progresive-web-application-live-learn-how-to-use"
         >
           Written Tutorial
         </Button>

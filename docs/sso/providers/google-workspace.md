@@ -1,6 +1,6 @@
 # Set Up SSO with Google Workspace
 
-Shelf supports single sign-on (SSO) using Google Workspace (formerly known as GSuite).
+ Bizmap supports single sign-on (SSO) using Google Workspace (formerly known as GSuite).
 
 ## Step 1: Open the Google Workspace web and mobile apps console [#](#step-1-open-the-google-workspace-web-and-mobile-apps-console)
 
@@ -24,7 +24,7 @@ This is a very important step. Click on _DOWNLOAD METADATA_ and save the file th
 
 ![step-4](../../img/google-workspace-step-4.png)
 
-It's very important to send this file to your support contact at Shelf to complete the SSO setup process. If you're not sure where to send this file, you can always reach us at [hello@shelf.nu](mailto:hello@shelf.nu).
+It's very important to send this file to your support contact at Bizmap to complete the SSO setup process. If you're not sure where to send this file, you can always reach us at [hello@bizmap](mailto:hello@bizmap).
 
 > [!IMPORTANT]
 > Make sure the certificate as shown on screen has at least 1 year before it expires. Mark down this date in your calendar so you will be reminded that you need to update the certificate without any downtime for your users.
@@ -44,7 +44,7 @@ Fill out these service provider details on the next screen.
 
 ## Step 6: Configure attribute mapping [#](#step-6-configure-attribute-mapping)
 
-Attribute mappings allow Shelf to get information about your Google Workspace users on each login.
+Attribute mappings allow Bizmap to get information about your Google Workspace users on each login.
 
 All attribute mappings are required. If in doubt, replicate the same config as shown in the screenshot below.
 
@@ -55,18 +55,18 @@ All attribute mappings are required. If in doubt, replicate the same config as s
 
 ## Step 7: Wait for confirmation [#](#step-7-wait-for-confirmation)
 
-Once you’ve configured the Google Workspace app as shown above, make sure you send the metadata file you downloaded to your support contact at Shelf.
+Once you’ve configured the Google Workspace app as shown above, make sure you send the metadata file you downloaded to your support contact at Bizmap.
 
-This information needs to be entered into Shelf before SSO is activated end-to-end.
+This information needs to be entered into Bizmap before SSO is activated end-to-end.
 
-Wait for confirmation that this information has successfully been added to Shelf. It usually takes us 1 business day to configure this information for you.
+Wait for confirmation that this information has successfully been added to Bizmap. It usually takes us 1 business day to configure this information for you.
 
 In the meantime, you can continue with the next steps that will show you how to setup your groups and users.
 
 ## Step 8: Create groups and assign users [#](#step-8-create-groups-and-assign-users)
 
-In order to manage which users get access to which workspace and with what role, Shelf uses groups for the mapping.
-For each workspace you will have to create 3 groups, each one representing a different role in Shelf:
+In order to manage which users get access to which workspace and with what role, Bizmap uses groups for the mapping.
+For each workspace you will have to create 3 groups, each one representing a different role in Bizmap:
 
 - Admin group
 - Self service group
@@ -87,9 +87,9 @@ Add a name, email and make sure the group is labeled as security. Optionally fil
 
 Once you have created your groups, you can assign any of your organization members to them. It is recommended that a member only belongs to 1 group within the same workspace. If they are added to both, the admin role will take precedence.
 
-### 8.3: Allow groups to access Shelf app [#](#83-groups-to-access-shelf-app)
+### 8.3: Allow groups to access Bizmap app [#](#83-groups-to-access-Bizmap-app)
 
-You can configure which Google Workspace user accounts will get access to Shelf. This is required as only users added to groups will be able to access Shelf.
+You can configure which Google Workspace user accounts will get access to Bizmap. This is required as only users added to groups will be able to access Bizmap.
 
 You can configure this access by clicking on the _User access_ card (or down-arrow). Follow the instructions on screen.
 
@@ -103,11 +103,11 @@ Once you have created all your groups, you have to make sure to add them to the 
 
 ![step-8.4](../../img/google-workspace-step-8-4.png)
 
-Make sure to add all groups that you want to access Shelf. The **_App attribute_** name should be **_groups_**
+Make sure to add all groups that you want to access Bizmap. The **_App attribute_** name should be **_groups_**
 
-## Step 9: Map Google workspace groups inside Shelf [#](#step-9-map-google-workspace-groups-inside-shelf)
+## Step 9: Map Google workspace groups inside Bizmap [#](#step-9-map-google-workspace-groups-inside-Bizmap)
 
-Once you have the groups ready, you need to add their names in the workspace settings inside Shelf. If you have multiple workspaces, you will need to map each one.
+Once you have the groups ready, you need to add their names in the workspace settings inside Bizmap. If you have multiple workspaces, you will need to map each one.
 
 Go the the workspace settings and place the name of the ADMIN, BASE & SELF SERVICE groups.
 
@@ -124,4 +124,4 @@ It often helps to ask them to log out of their Google account and log back in.
 
 Ask them to enter the domain of their in the Login in with SSO page.
 
-If sign in is not working correctly, reach out to your support contact at Shelf.
+If sign in is not working correctly, reach out to your support contact at Bizmap.

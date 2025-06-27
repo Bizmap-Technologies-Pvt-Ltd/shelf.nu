@@ -1,6 +1,6 @@
 # Hooks
 
-Shelf comes with a few utility hooks that will make your usage of shelf easier.
+ Bizmap comes with a few utility hooks that will make your usage of bizmap easier.
 
 > [!NOTE]
 > Not all hooks are documented. If you find a hook that is missing in the documentation, feel free to add your contribution by explaining what the hook does, using the same formatting as we typically use.

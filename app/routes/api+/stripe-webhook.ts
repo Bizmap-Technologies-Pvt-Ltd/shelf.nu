@@ -316,7 +316,7 @@ export async function action({ request }: ActionFunctionArgs) {
         if (isTrialSubscription) {
           sendEmail({
             to: user.email,
-            subject: "Your shelf.nu free trial is ending soon",
+            subject: "Your bizmap free trial is ending soon",
             text: trialEndsSoonText({
               user: {
                 firstName: user?.firstName ?? null,

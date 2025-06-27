@@ -1,7 +1,7 @@
-# Shelf.nu
+# Bizmap.nu
 
-<a href="https://www.shelf.nu/" target="_blank">
-<img width="100%" src="./public/static/images/readme-cover.jpg" alt="Shelf.nu Cover" />
+<a href="https://www.tracora.bizmap.in/" target="_blank">
+<img width="100%" src="./public/static/images/readme-cover.jpg" alt="Bizmap.nu Cover" />
 </a>
 
 <h4 align="center">
@@ -9,14 +9,14 @@
 </h4>
 
 <p align="center">
-Shelf 🏷️ is a cutting-edge, open-source asset management platform designed to streamline tracking, organizing, and managing assets for individuals, businesses, and educational institutions.
+Bizmap 🏷️ is a cutting-edge, open-source asset management platform designed to streamline tracking, organizing, and managing assets for individuals, businesses, and educational institutions.
 </p>
 
 <div align="center" justify="center">
-<a href="https://www.shelf.nu/?ref=github" target="_blank"><b>Website</b></a> •
-<a href="https://github.com/Shelf-nu/shelf.nu/tree/main/docs" target="_blank"><b>Documentation</b></a> •
+<a href="https://www.tracora.bizmap.in/?ref=github" target="_blank"><b>Website</b></a> •
+<a href="https://github.com/Bizmap-nu/Bizmap.nu/tree/main/docs" target="_blank"><b>Documentation</b></a> •
 <a href="https://discord.gg/gdPMsSzqCS" target="_blank"><b>Community</b></a> •
-<a href="https://twitter.com/ShelfQR/?ref=github" target="_blank"><b>Twitter</b></a> •
+<a href="https://twitter.com/BizmapQR/?ref=github" target="_blank"><b>Twitter</b></a> •
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
@@ -38,7 +38,7 @@ Shelf 🏷️ is a cutting-edge, open-source asset management platform designed 
 
 ## Real Impact: Eastern Michigan University Case Study 🌟
 
-Shelf revolutionized asset management for Eastern Michigan University’s Theatre Program:
+Bizmap revolutionized asset management for Eastern Michigan University’s Theatre Program:
 
 - **Centralized Inventory**: Moving from chaotic spreadsheets to an organized digital catalog.
 - **Remote Access**: Students coordinate props from different locations, streamlining pre-production.
@@ -49,7 +49,7 @@ Shelf revolutionized asset management for Eastern Michigan University’s Theatr
 
 ## Use Cases 💡
 
-Shelf is ideal for managing:
+Bizmap is ideal for managing:
 
 - **Tool & Equipment Tracking**: For industries needing to oversee large-scale tools or equipment.
 - **IT Asset Management**: Track devices, peripherals, and office technology.
@@ -61,12 +61,12 @@ Shelf is ideal for managing:
 
 ## How to Get Started 💻
 
-To set up Shelf:
+To set up Bizmap:
 
 1. **Clone the Repo**:
    ```bash
-   git clone https://github.com/Shelf-nu/shelf.nu.git
-   cd shelf.nu
+   git clone https://github.com/Bizmap-nu/Bizmap.nu.git
+   cd Bizmap.nu
    ```
 2. **Install Dependencies**:
    ```bash
@@ -86,7 +86,7 @@ To set up Shelf:
    npm run dev
    ```
 
-For detailed setup instructions, check out our [documentation](https://github.com/Shelf-nu/shelf.nu/tree/main/docs).
+For detailed setup instructions, check out our [documentation](https://github.com/Bizmap-nu/Bizmap.nu/tree/main/docs).
 
 ---
 
@@ -98,10 +98,10 @@ We encourage contributions! See our [contribution guidelines](./CONTRIBUTING.md)
 
 ## License 📜
 
-Shelf.nu is licensed under the [AGPL-3.0 License](./LICENSE).
+Bizmap.nu is licensed under the [AGPL-3.0 License](./LICENSE).
 
 ---
 
 <p align="center">
-⭐️ Star the repo if you find Shelf helpful!
+⭐️ Star the repo if you find Bizmap helpful!
 </p>

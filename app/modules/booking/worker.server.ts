@@ -40,7 +40,7 @@ const checkoutReminder = async ({ data }: PgBoss.Job<SchedulerData>) => {
   if (email && booking.from && booking.to) {
     sendEmail({
       to: email,
-      subject: `🔔 Checkout reminder (${booking.name}) - shelf.nu`,
+      subject: `🔔 Checkout reminder (${booking.name}) - bizmap`,
       text: checkoutReminderEmailContent({
         bookingName: booking.name,
         assetsCount: booking._count.assets,
@@ -139,7 +139,7 @@ const overdueHandler = async ({ data }: PgBoss.Job<SchedulerData>) => {
   if (email) {
     sendEmail({
       to: email,
-      subject: `⚠️ Overdue booking (${booking.name}) - shelf.nu`,
+      subject: `⚠️ Overdue booking (${booking.name}) - bizmap`,
       text: overdueBookingEmailContent({
         bookingName: booking.name,
         assetsCount: booking._count.assets,

@@ -92,7 +92,7 @@ export const useVideoDevices = () => {
           return (
             <>
               <p>
-                Permissions have been denied. You need to allow shelf to use
+                Permissions have been denied. You need to allow bizmap to use
                 your device's camera to scan QR codes.
               </p>
               <Button variant="secondary" onClick={getDevices} className="mt-4">

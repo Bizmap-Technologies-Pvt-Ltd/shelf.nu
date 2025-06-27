@@ -129,7 +129,7 @@ export default function SSOLogin() {
           Want to enable SSO for your organization?{" "}
           <Button
             as="a"
-            href="mailto:hello@shelf.nu?subject=SSO request"
+            href="mailto:hello@bizmap?subject=SSO request"
             variant="link"
           >
             Contact us

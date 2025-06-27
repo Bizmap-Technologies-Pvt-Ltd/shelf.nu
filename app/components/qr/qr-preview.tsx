@@ -39,7 +39,7 @@ export const QrPreview = ({
   const fileName = useMemo(
     () =>
       `${slugify(item.name || item.type)}-${qrObj?.qr
-        ?.size}-shelf-qr-code-${qrObj?.qr?.id}.png`,
+        ?.size}-bizmap-qr-code-${qrObj?.qr?.id}.png`,
     [item, qrObj?.qr?.id, qrObj?.qr?.size]
   );
 
@@ -91,7 +91,7 @@ export const QrPreview = ({
             icon="download"
             onClick={downloadQr}
             download={`${slugify(item.name)}-${qrObj?.qr
-              ?.size}-shelf-qr-code-${qrObj?.qr?.id}.png`}
+              ?.size}-bizmap-qr-code-${qrObj?.qr?.id}.png`}
             ref={downloadQrBtnRef}
             variant="secondary"
             className="w-full"
@@ -166,14 +166,14 @@ export const QrLabel = React.forwardRef<HTMLDivElement, QrLabelProps>(
         <figure className="qr-code flex justify-center">
           <img
             src={data?.qr?.src}
-            alt={`${data?.qr?.size}-shelf-qr-code.png`}
+            alt={`${data?.qr?.size}-bizmap-qr-code.png`}
           />
         </figure>
         <div style={{ width: "100%", textAlign: "center", fontSize: "12px" }}>
           <div style={{ fontWeight: 600 }}>{data?.qr?.id}</div>
           <div>
             Powered by{" "}
-            <span style={{ fontWeight: 600, color: "black" }}>shelf.nu</span>
+            <span style={{ fontWeight: 600, color: "black" }}>Bizmap</span>
           </div>
         </div>
       </div>

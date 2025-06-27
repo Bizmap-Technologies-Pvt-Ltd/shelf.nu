@@ -24,7 +24,7 @@ export const inviteEmailText = ({
 
 ${invite.inviter.firstName} ${
   invite.inviter.lastName
-} invites you to join Shelf as a member of ${
+} invites you to join Bizmap as a member of ${
   invite.organization.name
 }’s workspace.
 
@@ -38,7 +38,7 @@ If you have any questions or need assistance, please don't hesitate to contact o
 ${extraMessage ? extraMessage : ""}
 
 Thanks,
-The Shelf Team
+The Bizmap Team
 `;
 
 export const revokeAccessEmailText = ({
@@ -52,5 +52,5 @@ Your access to ${orgName} has been revoked.
 If you think this is a mistake, please contact the organization’s administrator.
 
 Thanks,
-The Shelf Team
+The Bizmap Team
 `;

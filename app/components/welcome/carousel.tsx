@@ -39,9 +39,9 @@ function Carousel() {
                 />
               </figure>
               <div className="text-center">
-                <h1 className=" text-lg">Welcome to Shelf</h1>
+                <h1 className=" text-lg">Welcome to Bizmap</h1>
                 <p className="mb-4">
-                  Shelf is a simple but powerful asset management tool focused
+                  Bizmap is a simple but powerful asset management tool focused
                   on a delightful user experience.
                 </p>
               </div>
@@ -60,7 +60,7 @@ function Carousel() {
                 <h1 className=" text-lg">Have you bought a sheet?</h1>
                 <p className="mb-4">
                   If so, stick your unclaimed tags on physical assets you would
-                  like to store in Shelf. Scan the QR code and program your new
+                  like to store in Bizmap. Scan the QR code and program your new
                   asset.
                 </p>
               </div>
@@ -83,7 +83,7 @@ function Carousel() {
                 </h1>
                 <p className="mb-4">
                   Afterwards you can start discovering all the other features
-                  Shelf has to offer.
+                  Bizmap has to offer.
                 </p>
               </div>
             </div>

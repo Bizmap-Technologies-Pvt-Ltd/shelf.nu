@@ -42,13 +42,13 @@ export default function App() {
           John Singer Sargent <br />A Corner of the Library in Venice, 1904/1907
         </a>
         {/* eslint-disable react/jsx-no-target-blank */}
-        <a
-          href="https://www.shelf.nu/?ref=shelf_app_auth_image"
+        {/* <a
+          href="https://www.tracora.bizmap.in/?ref=shelf_app_auth_image"
           className="relative z-20 mt-4 w-[150px] text-right text-sm text-black no-underline hover:text-black"
           target="_blank"
         >
-          shelf.nu
-        </a>
+          bizmap
+        </a> */}
         <img
           className="absolute inset-0 size-full max-w-none object-cover"
           src="/static/images/auth-cover.jpg"

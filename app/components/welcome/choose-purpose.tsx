@@ -19,7 +19,7 @@ export function ChoosePurpose() {
       <div className="flex flex-col items-center p-4 sm:p-6">
         <ShelfSymbolLogo className="mb-4 size-8" />
         <div className="mb-8 text-center">
-          <h3>How will you use shelf?</h3>
+          <h3>How will you use bizmap?</h3>
           <p>
             This will give us important insights on what how to improve our
             product and what to offer.
@@ -37,7 +37,7 @@ export function ChoosePurpose() {
             <div>
               <h5 className="font-medium">Personal</h5>
               <p>
-                I want to use Shelf for personal use and/or discover if Shelf
+                I want to use Bizmap for personal use and/or discover if Bizmap
                 offers the features I need for my workflow.
               </p>
             </div>
@@ -53,7 +53,7 @@ export function ChoosePurpose() {
             <div>
               <h5 className="font-medium">Team</h5>
               <p>
-                I am planning on using Shelf within a team. Multiple user will
+                I am planning on using Bizmap within a team. Multiple user will
                 be accessing my workspace and they’ll be managing and/or
                 interacting with the asset inventory.
               </p>

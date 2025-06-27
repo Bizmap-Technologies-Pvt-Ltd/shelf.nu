@@ -62,9 +62,9 @@ TRANSP:TRANSPARENT
 DTSTART:${formattedFromDate}
 DTEND:${formattedToDate}
 DTSTAMP:${formattedDTSTAMP}
-CATEGORIES:Shelf.nu booking
-LOCATION:shelf.nu
-DESCRIPTION:Shelf.nu booking (Asset / Equipment checkout)
+CATEGORIES:Bizmap booking
+LOCATION:bizmap
+DESCRIPTION:Bizmap booking (Asset / Equipment checkout)
 URL:${SERVER_URL}/bookings/${bookingId}
 END:VEVENT
 END:VCALENDAR`.trim();
@@ -72,7 +72,7 @@ END:VCALENDAR`.trim();
     return new Response(ics, {
       headers: {
         "Content-Type": "text/calendar",
-        "Content-Disposition": `attachment; filename="${booking.name} - shelf.nu.ics"`,
+        "Content-Disposition": `attachment; filename="${booking.name} - bizmap.ics"`,
       },
     });
   } catch (cause) {

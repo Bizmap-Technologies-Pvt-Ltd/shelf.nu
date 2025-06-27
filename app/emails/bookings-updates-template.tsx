@@ -42,7 +42,7 @@ export function BookingUpdatesEmailTemplate({
   return (
     <Html>
       <Head>
-        <title>Bookings update from Shelf.nu</title>
+        <title>Bookings update from Bizmap</title>
       </Head>
 
       <Container

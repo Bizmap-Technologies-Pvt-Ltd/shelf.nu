@@ -263,7 +263,7 @@ export const handleDetection = async ({
   if (!match && !allowNonShelfCodes) {
     await onQrDetectionSuccess?.({
       qrId: result,
-      error: "Scanned code is not a valid Shelf QR code.",
+      error: "Scanned code is not a valid Bizmap QR code.",
     });
     return;
   }
