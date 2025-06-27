@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import type { ShouldRevalidateFunctionArgs } from "@remix-run/react";
-import { useLoaderData, Link } from "@remix-run/react";
+import { useLoaderData, Link, useRevalidator } from "@remix-run/react";
 import { scannedItemsAtom, type ScannedRfidItem } from "~/atoms/rfid-scanner";
 import { useAtom } from "jotai";
 import Header from "~/components/layout/header";
@@ -31,10 +31,18 @@ export const handle = {
 export function shouldRevalidate({
   actionResult,
   defaultShouldRevalidate,
+  currentUrl,
+  nextUrl,
 }: ShouldRevalidateFunctionArgs) {
   if (actionResult?.isTogglingSidebar) {
     return false;
   }
+  
+  // Always revalidate on navigation to ensure fresh data
+  if (currentUrl.pathname !== nextUrl.pathname) {
+    return true;
+  }
+  
   return defaultShouldRevalidate;
 }
 
@@ -143,7 +151,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 export default function AssetsReconciliation() {
   const loaderData = useLoaderData<typeof loader>();
-  
+  const revalidator = useRevalidator();
 
   
   // Handle potential error state
@@ -189,8 +197,9 @@ export default function AssetsReconciliation() {
   );
   
   // Update bundles state when recentReconciliations changes
+  // Remove the length check to ensure state updates even when data goes from empty to populated
   useEffect(() => {
-    if (recentReconciliations && Array.isArray(recentReconciliations) && recentReconciliations.length > 0) {
+    if (recentReconciliations && Array.isArray(recentReconciliations)) {
       setBundles(recentReconciliations);
     }
   }, [recentReconciliations]);
@@ -267,13 +276,23 @@ export default function AssetsReconciliation() {
       });
 
       if (!response.ok) {
-        // If the API call fails, we can show an error message
-        // and potentially try again or remove the optimistic update
+        // If the API call fails, revert the optimistic update
+        setBundles((prev) => prev.filter(bundle => bundle.id !== bundleId));
         const errorData = await response.json();
-        // Handle error appropriately - could add notification here
+        console.error("Failed to save reconciliation bundle:", errorData);
+        // Could add notification here for better UX
+      } else {
+        // On successful save, trigger a revalidation to get fresh data from the server
+        // This helps ensure that on refresh, the latest data is always shown
+        setTimeout(() => {
+          revalidator.revalidate();
+        }, 100); // Small delay to ensure database transaction is committed
       }
     } catch (error) {
-      // Handle error appropriately - could add notification here
+      // If there's a network error, revert the optimistic update
+      setBundles((prev) => prev.filter(bundle => bundle.id !== bundleId));
+      console.error("Network error saving reconciliation bundle:", error);
+      // Could add notification here for better UX
     }
   };
 

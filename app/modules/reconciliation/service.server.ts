@@ -36,7 +36,15 @@ export async function createReconciliationBundle(
 ): Promise<ReconciliationBundle> {
   try {
     // Validate assetIds to ensure they exist in the database
-    const validItems = [];
+    const validItems: Array<{
+      rfidTag: string;
+      assetId: string | null;
+      assetName: string;
+      category: string | null;
+      status: string | null;
+      location: string | null;
+      locationMismatch: boolean;
+    }> = [];
     
     for (const item of input.items) {
       // Default item with null assetId
@@ -71,18 +79,23 @@ export async function createReconciliationBundle(
       validItems.push(validItem);
     }
     
-    return await db.reconciliationBundle.create({
-      data: {
-        bundleId: input.bundleId,
-        locationId: input.locationId,
-        userId: input.userId,
-        organizationId: input.organizationId,
-        status: input.status || "COMPLETED",
-        items: {
-          create: validItems
+    // Use a transaction to ensure atomicity and consistency
+    const result = await db.$transaction(async (tx) => {
+      return await tx.reconciliationBundle.create({
+        data: {
+          bundleId: input.bundleId,
+          locationId: input.locationId,
+          userId: input.userId,
+          organizationId: input.organizationId,
+          status: input.status || "COMPLETED",
+          items: {
+            create: validItems
+          }
         }
-      }
+      });
     });
+    
+    return result;
   } catch (cause) {
     throw new ShelfError({
       cause,
