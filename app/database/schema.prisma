@@ -1,144 +1,659 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
-}
-
 model Image {
-  id String @id @default(cuid())
-
-  contentType String
-  altText     String?
-  blob        Bytes
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String        @id @default(cuid())
+  contentType  String
+  altText      String?
+  blob         Bytes
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  userId       String
+  ownerOrgId   String
+  ownerOrg     Organization  @relation("owner", fields: [ownerOrgId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id])
   location     Location?
   organization Organization? @relation("orgImage")
 
-  ownerOrg   Organization @relation("owner", fields: [ownerOrgId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  ownerOrgId String
-
-  user   User   @relation(fields: [userId], references: [id], onUpdate: Cascade)
-  userId String
-
-  // Indexes for foreign keys
   @@index([ownerOrgId])
   @@index([userId])
 }
 
 model User {
-  id                String  @id @default(cuid())
-  email             String  @unique
-  username          String  @unique @default(cuid())
-  firstName         String?
-  lastName          String?
-  profilePicture    String?
-  usedFreeTrial     Boolean @default(false)
-  onboarded         Boolean @default(false)
-  customerId        String? @unique // Stripe customer id
-  sso               Boolean @default(false)
-  createdWithInvite Boolean @default(false) // Set to true if the user was created by being invited to a workspace
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Used to flag if the user is soft deleted
-  deletedAt DateTime?
-
-  // Relationships
-  assets            Asset[]
-  categories        Category[]
-  notes             Note[]
-  qrCodes           Qr[]
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  profilePicture        String?
+  firstName             String?
+  lastName              String?
+  username              String                 @unique @default(cuid())
+  onboarded             Boolean                @default(false)
+  customerId            String?                @unique
+  tierId                TierId                 @default(free)
+  usedFreeTrial         Boolean                @default(false)
+  sso                   Boolean                @default(false)
+  createdWithInvite     Boolean                @default(false)
+  deletedAt             DateTime?
+  assets                Asset[]
+  assetIndexSettings    AssetIndexSettings[]
+  assetReminders        AssetReminder[]
+  bookings              Booking[]              @relation("creator")
+  custodies             Booking[]              @relation("custodian")
+  categories            Category[]
+  customFields          CustomField[]
+  customTierLimit       CustomTierLimit?
+  images                Image[]
+  receivedInvites       Invite[]               @relation("invitee")
+  sentInvites           Invite[]               @relation("inviter")
+  createdKits           Kit[]
+  locations             Location[]
+  notes                 Note[]
+  organizations         Organization[]
+  qrCodes               Qr[]
   reconciliationBundles ReconciliationBundle[]
-  scans             Scan[]
-  tags              Tag[]
-  roles             Role[]
-  locations         Location[]
-  images            Image[]
-  organizations     Organization[]
-  customFields      CustomField[]
-  sentInvites       Invite[]           @relation("inviter")
-  receivedInvites   Invite[]           @relation("invitee")
-  teamMembers       TeamMember[]
-  userOrganizations UserOrganization[]
-  bookings          Booking[]          @relation("creator")
-  custodies         Booking[]          @relation("custodian")
-  createdKits       Kit[]
-  tierId            TierId             @default(free)
-  tier              Tier               @relation(fields: [tierId], references: [id])
-  assetReminders    AssetReminder[]
-
-  // A user can have multiple asset index settings, 1 for each organization
-  assetIndexSettings AssetIndexSettings[]
-
-  // This relationship will be used only when tierId == custom
-  customTierLimit CustomTierLimit?
+  scans                 Scan[]
+  tags                  Tag[]
+  teamMembers           TeamMember[]
+  tier                  Tier                   @relation(fields: [tierId], references: [id])
+  userOrganizations     UserOrganization[]
+  roles                 Role[]                 @relation("RoleToUser")
 
   @@unique([email, username])
   @@index([firstName, lastName])
-  // Index for foreign key
   @@index([tierId])
 }
 
 model Asset {
-  id                  String      @id @default(cuid())
+  id                  String                  @id @default(cuid())
   title               String
   description         String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  userId              String
   mainImage           String?
-  thumbnailImage      String?
   mainImageExpiration DateTime?
-  status              AssetStatus @default(AVAILABLE)
-  valuation           Float?      @map("value") // Field to store the monetary value of an asset
-  availableToBook     Boolean     @default(true)
-  rfid                String?     // RFID tag identifier for asset tracking
+  categoryId          String?
+  locationId          String?
+  organizationId      String
+  status              AssetStatus             @default(AVAILABLE)
+  valuation           Float?                  @map("value")
+  availableToBook     Boolean                 @default(true)
+  kitId               String?
+  thumbnailImage      String?
+  rfid                String?
+  category            Category?               @relation(fields: [categoryId], references: [id])
+  kit                 Kit?                    @relation(fields: [kitId], references: [id])
+  location            Location?               @relation(fields: [locationId], references: [id])
+  organization        Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customFields        AssetCustomFieldValue[]
+  reminders           AssetReminder[]
+  custody             Custody?
+  notes               Note[]
+  qrCodes             Qr[]
+  reconciliationItems ReconciliationItem[]
+  reports             ReportFound[]
+  bookings            Booking[]               @relation("AssetToBooking")
+  tags                Tag[]                   @relation("AssetToTag")
 
-  // Datetime
+  @@index([title(ops: raw("gin_trgm_ops")), description(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([organizationId, title, status, availableToBook], map: "Asset_organizationId_compound_idx")
+  @@index([status, organizationId])
+  @@index([createdAt, organizationId])
+  @@index([valuation, organizationId], map: "Asset_valuation_organizationId_idx")
+  @@index([categoryId, organizationId])
+  @@index([locationId, organizationId])
+  @@index([kitId, organizationId])
+  @@index([userId])
+}
+
+model AssetIndexSettings {
+  id             String         @id @default(cuid())
+  userId         String
+  organizationId String
+  mode           AssetIndexMode @default(SIMPLE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  columns        Json           @default("[{\"name\": \"id\", \"visible\": true, \"position\": 0}, {\"name\": \"status\", \"visible\": true, \"position\": 1}, {\"name\": \"description\", \"visible\": true, \"position\": 2}, {\"name\": \"valuation\", \"visible\": true, \"position\": 3}, {\"name\": \"createdAt\", \"visible\": true, \"position\": 4}, {\"name\": \"category\", \"visible\": true, \"position\": 5}, {\"name\": \"tags\", \"visible\": true, \"position\": 6}, {\"name\": \"location\", \"visible\": true, \"position\": 7}, {\"name\": \"kit\", \"visible\": true, \"position\": 8}, {\"name\": \"custody\", \"visible\": true, \"position\": 9}]")
+  freezeColumn   Boolean        @default(true)
+  showAssetImage Boolean        @default(true)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Category {
+  id             String        @id @default(cuid())
+  name           String
+  description    String?
+  color          String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  userId         String
+  organizationId String
+  assets         Asset[]
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id])
+  customFields   CustomField[] @relation("CategoryToCustomField")
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Tag {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  userId         String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+  assets         Asset[]      @relation("AssetToTag")
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  userId    String?
+  assetId   String
+  type      NoteType @default(COMMENT)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
 
-  // Relationships
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-  category       Category?    @relation(fields: [categoryId], references: [id])
-  categoryId     String?
-  location       Location?    @relation(fields: [locationId], references: [id])
-  locationId     String?
-  kit            Kit?         @relation(fields: [kitId], references: [id])
-  kitId          String?
-
-  custody      Custody?
-  notes        Note[]
-  qrCodes      Qr[]
-  reports      ReportFound[]
-  tags         Tag[]
-  customFields AssetCustomFieldValue[]
-  bookings     Booking[]
-  reminders    AssetReminder[]
-  reconciliationItems ReconciliationItem[]
-
-  // Special GIN index for optimization of simple search queries
-  @@index([title(ops: raw("gin_trgm_ops")), description(ops: raw("gin_trgm_ops"))], type: Gin)
-  // Indexes for optimization of queries
-  @@index([organizationId, title, status, availableToBook], name: "Asset_organizationId_compound_idx")
-  @@index([status, organizationId], name: "Asset_status_organizationId_idx")
-  @@index([createdAt, organizationId], name: "Asset_createdAt_organizationId_idx")
-  @@index([valuation, organizationId], name: "Asset_valuation_organizationId_idx")
-  @@index([categoryId, organizationId], name: "Asset_categoryId_organizationId_idx")
-  @@index([locationId, organizationId], name: "Asset_locationId_organizationId_idx")
-  @@index([kitId, organizationId], name: "Asset_kitId_organizationId_idx")
-  // Index for foreign key
+  @@index([assetId])
   @@index([userId])
+}
+
+model Qr {
+  id              String          @id @default(cuid())
+  version         Int             @default(0)
+  errorCorrection ErrorCorrection @default(L)
+  userId          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  assetId         String?
+  organizationId  String?
+  batchId         String?
+  kitId           String?
+  asset           Asset?          @relation(fields: [assetId], references: [id])
+  batch           PrintBatch?     @relation(fields: [batchId], references: [id])
+  kit             Kit?            @relation(fields: [kitId], references: [id])
+  organization    Organization?   @relation(fields: [organizationId], references: [id])
+  user            User?           @relation(fields: [userId], references: [id])
+  scans           Scan[]
+
+  @@index([assetId])
+  @@index([kitId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([batchId])
+}
+
+model PrintBatch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  printed   Boolean  @default(false)
+  qrCodes   Qr[]
+}
+
+model ReportFound {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String
+  assetId   String?
+  kitId     String?
+  asset     Asset?   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  kit       Kit?     @relation(fields: [kitId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([kitId])
+}
+
+model Scan {
+  id                String   @id @default(cuid())
+  latitude          String?
+  longitude         String?
+  userAgent         String?
+  userId            String?
+  qrId              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  rawQrId           String
+  manuallyGenerated Boolean  @default(false)
+  qr                Qr?      @relation(fields: [qrId], references: [id])
+  user              User?    @relation(fields: [userId], references: [id])
+
+  @@index([qrId])
+  @@index([userId])
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Location {
+  id                    String                 @id @default(cuid())
+  name                  String
+  description           String?
+  address               String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  userId                String
+  imageId               String?                @unique
+  organizationId        String
+  imageUrl              String?
+  thumbnailUrl          String?
+  assets                Asset[]
+  image                 Image?                 @relation(fields: [imageId], references: [id])
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reconciliationBundles ReconciliationBundle[]
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      Roles    @unique @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]   @relation("RoleToUser")
+}
+
+model TeamMember {
+  id              String          @id @default(cuid())
+  name            String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  userId          String?
+  deletedAt       DateTime?
+  organizationId  String
+  bookings        Booking[]
+  custodies       Custody[]
+  receivedInvites Invite[]
+  kitCustodies    KitCustody[]
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User?           @relation(fields: [userId], references: [id])
+  assetReminders  AssetReminder[] @relation("AssetReminderToTeamMember")
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Custody {
+  id           String     @id @default(cuid())
+  teamMemberId String
+  assetId      String     @unique
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  asset        Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  custodian    TeamMember @relation(fields: [teamMemberId], references: [id])
+
+  @@index([assetId, teamMemberId])
+  @@index([teamMemberId])
+}
+
+model Organization {
+  id                        String                 @id @default(cuid())
+  name                      String                 @default("Personal")
+  type                      OrganizationType       @default(PERSONAL)
+  userId                    String
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  imageId                   String?                @unique
+  currency                  Currency               @default(USD)
+  enabledSso                Boolean                @default(false)
+  ssoDetailsId              String?
+  workspaceDisabled         Boolean                @default(false)
+  baseUserCanSeeBookings    Boolean                @default(false)
+  baseUserCanSeeCustody     Boolean                @default(false)
+  selfServiceCanSeeBookings Boolean                @default(false)
+  selfServiceCanSeeCustody  Boolean                @default(false)
+  assets                    Asset[]
+  assetIndexSettings        AssetIndexSettings[]
+  assetReminders            AssetReminder[]
+  bookings                  Booking[]
+  bookingSettings           BookingSettings?
+  categories                Category[]
+  customFields              CustomField[]
+  images                    Image[]                @relation("owner")
+  invites                   Invite[]
+  kits                      Kit[]
+  locations                 Location[]
+  image                     Image?                 @relation("orgImage", fields: [imageId], references: [id])
+  ssoDetails                SsoDetails?            @relation(fields: [ssoDetailsId], references: [id])
+  owner                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrCodes                   Qr[]
+  reconciliationBundles     ReconciliationBundle[]
+  tags                      Tag[]
+  members                   TeamMember[]
+  userOrganizations         UserOrganization[]
+  workingHours              WorkingHours?
+
+  @@index([userId])
+  @@index([ssoDetailsId])
+}
+
+model UserOrganization {
+  id             String              @id @default(cuid())
+  userId         String
+  organizationId String
+  roles          OrganizationRoles[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model SsoDetails {
+  id                 String         @id @default(cuid())
+  domain             String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  adminGroupId       String?
+  selfServiceGroupId String?
+  baseUserGroupId    String?
+  organizations      Organization[]
+}
+
+model Tier {
+  id          TierId     @id
+  name        String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tierLimitId TierId?    @unique
+  tierLimit   TierLimit? @relation(fields: [tierLimitId], references: [id])
+  subscribers User[]
+}
+
+model TierLimit {
+  id               TierId   @id
+  canImportAssets  Boolean  @default(false)
+  canExportAssets  Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  maxCustomFields  Int      @default(0)
+  maxOrganizations Int      @default(1)
+  canImportNRM     Boolean  @default(false)
+  tier             Tier?
+}
+
+model CustomTierLimit {
+  id               String   @id @default(cuid())
+  userId           String?  @unique
+  canImportAssets  Boolean  @default(true)
+  canExportAssets  Boolean  @default(true)
+  maxCustomFields  Int      @default(1000)
+  maxOrganizations Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  canImportNRM     Boolean  @default(true)
+  isEnterprise     Boolean  @default(false)
+  user             User?    @relation(fields: [userId], references: [id])
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model CustomField {
+  id                      String                  @id @default(cuid())
+  name                    String
+  helpText                String?
+  required                Boolean                 @default(false)
+  type                    CustomFieldType         @default(TEXT)
+  organizationId          String
+  userId                  String
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  active                  Boolean                 @default(true)
+  options                 String[]
+  assetCustomFieldsValues AssetCustomFieldValue[]
+  organization            Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy               User                    @relation(fields: [userId], references: [id])
+  categories              Category[]              @relation("CategoryToCustomField")
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model AssetCustomFieldValue {
+  id            String      @id @default(cuid())
+  assetId       String
+  customFieldId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  value         Json
+  asset         Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, customFieldId], map: "AssetCustomFieldValue_lookup_idx")
+  @@index([customFieldId])
+}
+
+model Invite {
+  id                String              @id @default(cuid())
+  inviterId         String
+  organizationId    String
+  inviteeUserId     String?
+  teamMemberId      String
+  inviteeEmail      String
+  status            InviteStatuses      @default(PENDING)
+  inviteCode        String
+  roles             OrganizationRoles[]
+  expiresAt         DateTime
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  inviteeUser       User?               @relation("invitee", fields: [inviteeUserId], references: [id], onDelete: Cascade)
+  inviter           User                @relation("inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviteeTeamMember TeamMember          @relation(fields: [teamMemberId], references: [id])
+
+  @@index([inviteeUserId])
+  @@index([inviterId])
+  @@index([organizationId])
+  @@index([teamMemberId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  name      String
+  content   String
+  link      String?
+  linkText  String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Booking {
+  id                       String        @id @default(cuid())
+  name                     String
+  status                   BookingStatus @default(DRAFT)
+  creatorId                String
+  organizationId           String
+  createdAt                DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime      @updatedAt @db.Timestamptz(3)
+  from                     DateTime?     @db.Timestamptz(3)
+  to                       DateTime?     @db.Timestamptz(3)
+  custodianTeamMemberId    String?
+  custodianUserId          String?
+  activeSchedulerReference String?
+  description              String?       @default("")
+  originalFrom             DateTime?     @db.Timestamptz(3)
+  originalTo               DateTime?     @db.Timestamptz(3)
+  creator                  User          @relation("creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  custodianTeamMember      TeamMember?   @relation(fields: [custodianTeamMemberId], references: [id], onDelete: Cascade)
+  custodianUser            User?         @relation("custodian", fields: [custodianUserId], references: [id], onDelete: Cascade)
+  organization             Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets                   Asset[]       @relation("AssetToBooking")
+
+  @@index([creatorId])
+  @@index([custodianTeamMemberId])
+  @@index([custodianUserId])
+  @@index([organizationId])
+}
+
+model BookingSettings {
+  id              String       @id @default(cuid())
+  bufferStartTime Int          @default(0)
+  organizationId  String       @unique
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Kit {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  status          KitStatus     @default(AVAILABLE)
+  image           String?
+  imageExpiration DateTime?
+  organizationId  String
+  createdById     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  assets          Asset[]
+  createdBy       User          @relation(fields: [createdById], references: [id])
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  custody         KitCustody?
+  qrCodes         Qr[]
+  reports         ReportFound[]
+
+  @@index([createdById])
+  @@index([organizationId])
+}
+
+model KitCustody {
+  id          String     @id @default(cuid())
+  custodianId String
+  kitId       String     @unique
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  custodian   TeamMember @relation(fields: [custodianId], references: [id])
+  kit         Kit        @relation(fields: [kitId], references: [id], onDelete: Cascade)
+
+  @@index([custodianId])
+}
+
+model AssetReminder {
+  id                       String       @id @default(cuid())
+  name                     String
+  message                  String
+  alertDateTime            DateTime
+  assetId                  String
+  createdById              String
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  organizationId           String
+  activeSchedulerReference String?
+  asset                    Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdBy                User         @relation(fields: [createdById], references: [id])
+  organization             Organization @relation(fields: [organizationId], references: [id])
+  teamMembers              TeamMember[] @relation("AssetReminderToTeamMember")
+
+  @@index([assetId, alertDateTime])
+  @@index([name(ops: raw("gin_trgm_ops")), message(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([organizationId, alertDateTime, assetId])
+  @@index([alertDateTime, activeSchedulerReference])
+  @@index([createdById])
+}
+
+model WorkingHours {
+  id             String                 @id @default(cuid())
+  enabled        Boolean                @default(false)
+  weeklySchedule Json                   @default("{\"0\": {\"isOpen\": false}, \"1\": {\"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"17:00\"}, \"2\": {\"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"17:00\"}, \"3\": {\"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"17:00\"}, \"4\": {\"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"17:00\"}, \"5\": {\"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"17:00\"}, \"6\": {\"isOpen\": false}}")
+  organizationId String                 @unique
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  overrides      WorkingHoursOverride[]
+
+  @@index([organizationId])
+}
+
+model WorkingHoursOverride {
+  id             String       @id @default(cuid())
+  date           DateTime     @db.Date
+  isOpen         Boolean      @default(false)
+  openTime       String?
+  closeTime      String?
+  reason         String?
+  workingHoursId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  workingHours   WorkingHours @relation(fields: [workingHoursId], references: [id], onDelete: Cascade)
+
+  @@unique([workingHoursId, date])
+  @@index([workingHoursId, date])
+  @@index([date, isOpen])
+}
+
+model ReconciliationBundle {
+  id             String               @id @default(cuid())
+  bundleId       String               @unique
+  date           DateTime             @default(now())
+  status         ReconciliationStatus @default(COMPLETED)
+  locationId     String
+  userId         String
+  organizationId String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  location       Location             @relation(fields: [locationId], references: [id])
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scannedBy      User                 @relation(fields: [userId], references: [id])
+  items          ReconciliationItem[]
+
+  @@index([organizationId])
+  @@index([locationId])
+  @@index([userId])
+  @@index([date])
+}
+
+model ReconciliationItem {
+  id               String               @id @default(cuid())
+  rfidTag          String
+  assetId          String?
+  assetName        String
+  category         String?
+  status           String?
+  location         String?
+  locationMismatch Boolean              @default(false)
+  bundleId         String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  asset            Asset?               @relation(fields: [assetId], references: [id])
+  bundle           ReconciliationBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@index([bundleId])
+  @@index([rfidTag])
+  @@index([assetId])
 }
 
 enum AssetStatus {
@@ -147,193 +662,14 @@ enum AssetStatus {
   CHECKED_OUT
 }
 
-model AssetIndexSettings {
-  id String @id @default(cuid())
-
-  // Relationships
-  // This is the user who's settings we are storing
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String
-
-  // This is the organizationId for which the user is setting the index settings
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  // Settings fields
-  mode AssetIndexMode @default(SIMPLE)
-
-  // Holds the columns that are visible in the index view in json format
-  // Format is {name: string, visible: boolean, position: number}[] where name is the name of the column, visible is whether the column is visible or not and position is the position of the column
-  // The shape of the JSON includes both some fixed entries that will always be present and some dynamic entries for the custom fields
-  // The fixed entries are: id, status, description, valuation, createdAt, category, tags, location, kit, custody
-  columns Json @default("[ {\"name\": \"id\", \"visible\": true, \"position\": 0}, {\"name\": \"status\", \"visible\": true, \"position\": 1}, {\"name\": \"description\", \"visible\": true, \"position\": 2}, {\"name\": \"valuation\", \"visible\": true, \"position\": 3}, {\"name\": \"createdAt\", \"visible\": true, \"position\": 4}, {\"name\": \"category\", \"visible\": true, \"position\": 5}, {\"name\": \"tags\", \"visible\": true, \"position\": 6}, {\"name\": \"location\", \"visible\": true, \"position\": 7}, {\"name\": \"kit\", \"visible\": true, \"position\": 8}, {\"name\": \"custody\", \"visible\": true, \"position\": 9} ]")
-
-  freezeColumn   Boolean @default(true)
-  showAssetImage Boolean @default(true)
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, organizationId])
-  // Index for foreign key
-  @@index([organizationId])
-}
-
 enum AssetIndexMode {
   SIMPLE
   ADVANCED
 }
 
-model Category {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  color       String
-
-  // DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  assets Asset[]
-  user   User    @relation(fields: [userId], references: [id], onUpdate: Cascade)
-  userId String
-
-  customFields CustomField[]
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  //@@unique([lower(name), organizationId]) //prisma doesnt support case insensitive unique index yet
-  // Indexes for foreign keys
-  @@index([organizationId])
-  @@index([userId])
-}
-
-model Tag {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-
-  //relations
-  assets Asset[]
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onUpdate: Cascade)
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  //@@unique([lower(name), organizationId]) //prisma doesnt support case insensitive unique index yet
-  // Indexes for foreign keys
-  @@index([organizationId])
-  @@index([userId])
-}
-
-model Note {
-  id      String   @id @default(cuid())
-  content String
-  type    NoteType @default(COMMENT)
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  user    User?   @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: SetNull)
-  userId  String?
-  asset   Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  assetId String
-
-  // Indexes for foreign keys
-  @@index([assetId])
-  @@index([userId])
-}
-
 enum NoteType {
   COMMENT
   UPDATE
-}
-
-model Qr {
-  id String @id @default(cuid())
-
-  // Version of the QR code based on spec from Denso wave
-  version Int @default(0)
-
-  // Error correction level based on spec from Denso wave
-  errorCorrection ErrorCorrection @default(L)
-
-  // Relationships
-  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  assetId String?
-
-  kit   Kit?    @relation(fields: [kitId], references: [id], onDelete: SetNull)
-  kitId String?
-
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  userId String?
-
-  organization   Organization? @relation(fields: [organizationId], references: [id], onUpdate: Cascade)
-  organizationId String?
-
-  // This batch is used to group QR codes together when they are created as unclaimed and printed
-  batch   PrintBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  batchId String?
-
-  // DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  scans     Scan[]
-
-  @@index([assetId], name: "Qr_assetId_idx")
-  // Indexes for foreign keys
-  @@index([kitId])
-  @@index([userId])
-  @@index([organizationId])
-  @@index([batchId])
-}
-
-model PrintBatch {
-  id String @id @default(cuid())
-
-  name String @unique
-
-  // This should be set to true, when QR code is exported for print
-  printed Boolean @default(false)
-
-  // Relationships
-  qrCodes Qr[]
-
-  // DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Stores a report for when a an asset is reported as found
-model ReportFound {
-  id      String @id @default(cuid())
-  email   String
-  content String
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  assetId String?
-
-  kit   Kit?    @relation(fields: [kitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  kitId String?
-
-  // Indexes for foreign keys
-  @@index([assetId])
-  @@index([kitId])
 }
 
 enum ErrorCorrection {
@@ -343,198 +679,9 @@ enum ErrorCorrection {
   H
 }
 
-model Scan {
-  id String @id @default(cuid())
-
-  latitude  String?
-  longitude String?
-
-  userAgent String?
-
-  // When a logged in user scanned the QR code, we store it here
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId String?
-
-  qr   Qr?     @relation(fields: [qrId], references: [id], onDelete: SetNull)
-  qrId String?
-
-  // We also store the qrId as a raw string for reference is fhte qr is deleted
-  rawQrId String
-
-  // This will be true if the user manually created the scan by using "Update GPS coordinates"
-  manuallyGenerated Boolean @default(false)
-
-  // DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Indexes for foreign keys
-  @@index([qrId])
-  @@index([userId])
-}
-
-model Location {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  address     String?
-
-  imageUrl     String?
-  thumbnailUrl String?
-
-  image   Image?  @relation(fields: [imageId], references: [id])
-  imageId String? @unique
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  assets Asset[]
-  reconciliationBundles ReconciliationBundle[]
-
-  // @@unique([lower(name), organizationId]) //prisma doesnt support case insensitive unique index yet
-  // Indexes for foreign keys
-  @@index([organizationId])
-  @@index([userId])
-}
-
-// Master data for roles
-model Role {
-  id   String @id @default(cuid())
-  name Roles  @unique @default(USER)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users User[]
-}
-
 enum Roles {
   USER
   ADMIN
-}
-
-model TeamMember {
-  id   String @id @default(cuid())
-  name String
-
-  organization    Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId  String
-  custodies       Custody[]
-  receivedInvites Invite[]
-  user            User?        @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: SetNull)
-  userId          String?
-  kitCustodies    KitCustody[]
-
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  deletedAt      DateTime?
-  bookings       Booking[]
-  assetReminders AssetReminder[]
-
-  // Special GIN index for optimization of simple search queries
-  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
-  // Indexes for foreign keys
-  @@index([organizationId])
-  @@index([userId])
-}
-
-model Custody {
-  id String @id @default(cuid())
-
-  custodian    TeamMember @relation(fields: [teamMemberId], references: [id])
-  teamMemberId String
-
-  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  assetId String @unique
-
-  // DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([assetId, teamMemberId], name: "Custody_assetId_teamMemberId_idx")
-  // Index for foreign key
-  @@index([teamMemberId])
-}
-
-model Organization {
-  id   String           @id @default(cuid())
-  name String           @default("Personal")
-  type OrganizationType @default(PERSONAL)
-
-  owner    User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  userId   String
-  currency Currency @default(USD)
-
-  members TeamMember[]
-  assets  Asset[]
-  reconciliationBundles ReconciliationBundle[]
-
-  image   Image?  @relation("orgImage", fields: [imageId], references: [id])
-  imageId String? @unique
-
-  // Not required. It will only be created for orgs that need sso
-  // We can know if an org has SSO by checking the ssoDetailsId
-  enabledSso   Boolean     @default(false) // If true, the organization has enabled SSO. This cannot be changed by the user, just managed by the admin
-  ssoDetailsId String?
-  ssoDetails   SsoDetails? @relation(fields: [ssoDetailsId], references: [id])
-  workingHours WorkingHours? 
-  bookingSettings BookingSettings?
-
-  // Permissions configuration
-  // those values are used to control the access to the custody and bookings by SELF SERVICE and BASE users
-  selfServiceCanSeeCustody Boolean @default(false) // If true, the self service users can see custody of assets inside the organization
-  selfServiceCanSeeBookings Boolean @default(false) // If true, the self service users can see bookings that are not theirs
-  baseUserCanSeeCustody   Boolean @default(false) // If true, the base users can see the custody of assets inside the organization
-  baseUserCanSeeBookings  Boolean @default(false) // If true, the base users can see the bookings that are not theirs
-
-  // This is used to disable the workspace for the user. It is set to true when the user leaves the workspace
-  workspaceDisabled Boolean @default(false) // If true, the workspace is disabled and the user cannot access it
-
-  locations         Location[]
-  categories        Category[]
-  tags              Tag[]
-  qrCodes           Qr[]
-  invites           Invite[]
-  userOrganizations UserOrganization[]
-
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  customFields       CustomField[]
-  images             Image[]              @relation("owner")
-  bookings           Booking[]
-  kits               Kit[]
-  assetIndexSettings AssetIndexSettings[]
-  assetReminders     AssetReminder[]
-
-  // Indexes for foreign keys
-  @@index([userId])
-  @@index([ssoDetailsId])
-}
-
-
-model UserOrganization {
-  id String @id @default(cuid())
-
-  user           User         @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  roles     OrganizationRoles[]
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-
-  @@unique([userId, organizationId])
-  // Index for foreign key
-  @@index([organizationId])
 }
 
 enum OrganizationType {
@@ -544,105 +691,16 @@ enum OrganizationType {
 
 enum OrganizationRoles {
   ADMIN
-  BASE
   OWNER
   SELF_SERVICE
+  BASE
 }
 
-model SsoDetails {
-  id String @id @default(cuid())
-
-  // The domains of the organization. Comma separated for multiple domains
-  domain String
-
-  organizations Organization[]
-
-  baseUserGroupId    String? // The group id for BASE users
-  selfServiceGroupId String? // The group id for SELF_SERVICE users
-  adminGroupId       String? // The group id for ADMIN users
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Tier Ids are used to identify tiers (products) in Stripe. They must be predictable in our model.
-// Each product in stripe has a metadata value called `shelf_tier` which holds the value of the enum
-// Add more tiers if needed
 enum TierId {
   free
   tier_1
   tier_2
   custom
-}
-
-// Tiers correspond to Stripe products
-model Tier {
-  id          TierId     @id // Used to create Stripe product ID
-  name        String // Name coming from Stripe product
-  subscribers User[]
-  tierLimitId TierId?    @unique
-  tierLimit   TierLimit? @relation(fields: [tierLimitId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-// TierLimit is used for the basic tiers
-model TierLimit {
-  id               TierId   @id
-  tier             Tier?
-  canImportAssets  Boolean  @default(false)
-  canExportAssets  Boolean  @default(false)
-  canImportNRM     Boolean  @default(false)
-  maxCustomFields  Int      @default(0)
-  maxOrganizations Int      @default(1)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-// CustomTierLimit is used for users which has Tier with ID: custom
-model CustomTierLimit {
-  id               String   @id @default(cuid())
-  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId           String?  @unique // This is the foreign key
-  canImportAssets  Boolean  @default(true)
-  canExportAssets  Boolean  @default(true)
-  canImportNRM     Boolean  @default(true)
-  maxCustomFields  Int      @default(1000)
-  maxOrganizations Int      @default(1)
-  isEnterprise     Boolean  @default(false) // Set this to true for enterprise users. It is used to control some visuals in the app
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-model CustomField {
-  id       String  @id @default(cuid())
-  name     String
-  helpText String?
-  required Boolean @default(false)
-  active   Boolean @default(true)
-
-  type    CustomFieldType @default(TEXT)
-  options String[]
-
-  // Relationships
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  createdBy User   @relation(fields: [userId], references: [id], onUpdate: Cascade)
-  userId    String
-
-  categories Category[]
-
-  // Datetime
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
-  assetCustomFieldsValues AssetCustomFieldValue[]
-
-  //@@unique([lower(name), organizationId]) //prisma doesnt support case insensitive unique index yet
-  // Indexes for foreign keys
-  @@index([organizationId])
-  @@index([userId])
 }
 
 enum CustomFieldType {
@@ -654,59 +712,36 @@ enum CustomFieldType {
   AMOUNT
 }
 
-model AssetCustomFieldValue {
-  id String @id @default(cuid())
-
-  // value String
-  value Json //{raw: "actual data",valueText:"text type",valueBoolean:"boolean type" and so on... }
-
-  // Relationships
-  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  assetId String
-
-  customField   CustomField @relation(fields: [customFieldId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  customFieldId String
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([assetId, customFieldId], name: "AssetCustomFieldValue_lookup_idx")
-  // Index for foreign key
-  @@index([customFieldId])
-}
-
 enum Currency {
-  USD // United States Dollar
-  EUR // Euro
-  GBP // British Pound Sterling
-
-  AED // United Arab Emirates Dirham
-  AUD // Australian Dollar
-  BRL // Brazilian Real
-  CAD // Canadian Dollar
-  CHF // Swiss Franc
-  CNY // Chinese Yuan
-  CZK // Czech Koruna
-  DKK // Danish Krone
-  HKD // Hong Kong Dollar
-  IDR // Indonesian Rupiah
-  INR // Indian Rupee
-  JPY // Japanese Yen
-  KRW // South Korean Won
-  LKR // Sri Lankan Rupee
-  MXN // Mexican Peso
-  MYR // Malaysian Ringgit
-  NOK // Norwegian Krone
-  NZD // New Zealand Dollar
-  PHP // Philippine Peso
-  PLN // Polish Zloty
-  RUB // Russian Ruble
-  SAR // Saudi Riyal
-  SEK // Swedish Krona
-  SGD // Singapore Dollar
-  ZAR // South African Rand
-  PKR // Pakistani Rupee  
+  USD
+  EUR
+  GBP
+  JPY
+  AUD
+  CAD
+  CHF
+  CNY
+  INR
+  ZAR
+  BRL
+  MXN
+  SGD
+  NZD
+  SEK
+  NOK
+  KRW
+  RUB
+  HKD
+  SAR
+  AED
+  DKK
+  PLN
+  MYR
+  IDR
+  CZK
+  LKR
+  PHP
+  PKR
 }
 
 enum InviteStatuses {
@@ -714,51 +749,6 @@ enum InviteStatuses {
   ACCEPTED
   REJECTED
   INVALIDATED
-}
-
-model Invite {
-  id String @id @default(cuid())
-
-  //relations
-  inviter           User         @relation("inviter", fields: [inviterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  inviterId         String
-  organization      Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId    String
-  inviteeUser       User?        @relation("invitee", fields: [inviteeUserId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  inviteeUserId     String?
-  inviteeTeamMember TeamMember   @relation(fields: [teamMemberId], references: [id])
-  teamMemberId      String
-
-  inviteeEmail String
-  status       InviteStatuses      @default(PENDING)
-  inviteCode   String
-  roles        OrganizationRoles[]
-
-  // Datetime
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Indexes for foreign keys
-  @@index([inviteeUserId])
-  @@index([inviterId])
-  @@index([organizationId])
-  @@index([teamMemberId])
-}
-
-model Announcement {
-  id String @id @default(cuid())
-
-  name    String
-  content String
-
-  link      String?
-  linkText  String?
-  published Boolean @default(false)
-
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 enum BookingStatus {
@@ -771,252 +761,13 @@ enum BookingStatus {
   CANCELLED
 }
 
-model Booking {
-  id String @id @default(cuid())
-
-  name        String
-  status      BookingStatus @default(DRAFT)
-  description String?       @default("")
-
-  activeSchedulerReference String?
-
-  // Relationships
-  creator   User   @relation("creator", fields: [creatorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  creatorId String
-
-  custodianUser   User?   @relation("custodian", fields: [custodianUserId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  custodianUserId String?
-
-  custodianTeamMember   TeamMember? @relation(fields: [custodianTeamMemberId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  custodianTeamMemberId String?
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  assets Asset[]
-
-  // Datetime
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  from      DateTime? @db.Timestamptz(3)
-  to        DateTime? @db.Timestamptz(3)
-
-  // When a booking is early check-in or early check-out, we store the original from and to
-  // dates here and updated the from and to dates to current date (if users agrees to change) 
-  originalFrom DateTime? @db.Timestamptz(3)
-  originalTo   DateTime? @db.Timestamptz(3)
-
-  // Indexes for foreign keys
-  @@index([creatorId])
-  @@index([custodianTeamMemberId])
-  @@index([custodianUserId])
-  @@index([organizationId])
-}
-
-
-model BookingSettings {
-  id String @id @default(cuid())
-  
-  bufferStartTime Int @default(0) // Buffer time in hours for bookings. This is used to prevent short term bookings
-  
-  // Relationships
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String       @unique
-  
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Index for foreign key
-  @@index([organizationId])
-}
-
-
-
-model Kit {
-  id String @id @default(cuid())
-
-  name        String
-  description String?
-  status      KitStatus @default(AVAILABLE)
-
-  image           String?
-  imageExpiration DateTime?
-
-  assets  Asset[]
-  custody KitCustody?
-  qrCodes Qr[]
-  reports ReportFound[]
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-
-  createdBy   User   @relation(fields: [createdById], references: [id])
-  createdById String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Indexes for foreign keys
-  @@index([createdById])
-  @@index([organizationId])
-}
-
 enum KitStatus {
   AVAILABLE
   IN_CUSTODY
   CHECKED_OUT
 }
 
-model KitCustody {
-  id String @id @default(cuid())
-
-  custodian   TeamMember @relation(fields: [custodianId], references: [id])
-  custodianId String
-
-  kit   Kit    @relation(fields: [kitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  kitId String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Index for foreign key
-  @@index([custodianId])
-}
-
-model AssetReminder {
-  id                       String       @id @default(cuid())
-  name                     String
-  message                  String
-  alertDateTime            DateTime
-  activeSchedulerReference String?
-  organization             Organization @relation(fields: [organizationId], references: [id])
-  organizationId           String
-  asset                    Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  assetId                  String
-  teamMembers              TeamMember[]
-  createdBy                User         @relation(fields: [createdById], references: [id])
-  createdById              String
-  createdAt                DateTime     @default(now())
-  updatedAt                DateTime     @updatedAt
-
-  // Optimized indexes
-  @@index([assetId, alertDateTime])
-  // Keeping these indexes as they were added for a purpose
-  @@index([name(ops: raw("gin_trgm_ops")), message(ops: raw("gin_trgm_ops"))], type: Gin)
-  @@index([organizationId, alertDateTime, assetId])
-  // For scheduler related queries
-  @@index([alertDateTime, activeSchedulerReference])
-  // Index for foreign key
-  @@index([createdById])
-}
-
-model WorkingHours {
-  id String @id @default(cuid())
-  
-  // Global enable/disable for the organization
-  enabled Boolean @default(false)
-  
-  // Weekly schedule stored as JSON for better performance
-  // Format: { "0": { "isOpen": true, "openTime": "09:00", "closeTime": "17:00" }, ... }
-  // Keys are day numbers (0=Sunday, 1=Monday, etc.)
-  // Times are stored in "HH:MM" format (24-hour) in UTC
-  weeklySchedule Json @default("{\"0\":{\"isOpen\":false},\"1\":{\"isOpen\":true,\"openTime\":\"09:00\",\"closeTime\":\"17:00\"},\"2\":{\"isOpen\":true,\"openTime\":\"09:00\",\"closeTime\":\"17:00\"},\"3\":{\"isOpen\":true,\"openTime\":\"09:00\",\"closeTime\":\"17:00\"},\"4\":{\"isOpen\":true,\"openTime\":\"09:00\",\"closeTime\":\"17:00\"},\"5\":{\"isOpen\":true,\"openTime\":\"09:00\",\"closeTime\":\"17:00\"},\"6\":{\"isOpen\":false}}")
-  
-  // Relationships
-  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String       @unique
-  
-  // Only overrides need separate table for better querying
-  overrides WorkingHoursOverride[]
-  
-  // Datetime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Index for foreign key
-  @@index([organizationId])
-}
-
-// Keep overrides separate for efficient date-based queries
-model WorkingHoursOverride {
-  id String @id @default(cuid())
-  
-  date DateTime @db.Date
-  isOpen Boolean @default(false)
-  
-  // Times stored in "HH:MM" format (24-hour) in UTC
-  openTime  String? // Format: "09:00"
-  closeTime String? // Format: "17:00"
-  reason String?
-  
-  workingHours   WorkingHours @relation(fields: [workingHoursId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  workingHoursId String
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@unique([workingHoursId, date])
-  @@index([workingHoursId, date])
-  @@index([date, isOpen])
-}
-
 enum ReconciliationStatus {
   COMPLETED
   IN_PROGRESS
-}
-
-model ReconciliationBundle {
-  id             String              @id @default(cuid())
-  bundleId       String              @unique // Customer-facing ID (REC-YYYYMMDD-XXXX)
-  date           DateTime            @default(now())
-  status         ReconciliationStatus @default(COMPLETED)
-  
-  // Relations
-  location       Location            @relation(fields: [locationId], references: [id])
-  locationId     String
-  
-  scannedBy      User                @relation(fields: [userId], references: [id])
-  userId         String
-  
-  organization   Organization        @relation(fields: [organizationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  organizationId String
-  
-  items          ReconciliationItem[]
-  
-  // Timestamps
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  
-  @@index([organizationId])
-  @@index([locationId])
-  @@index([userId])
-  @@index([date])
-}
-
-model ReconciliationItem {
-  id             String              @id @default(cuid())
-  rfidTag        String
-  
-  // Could be null if asset was not found in database
-  asset          Asset?              @relation(fields: [assetId], references: [id])
-  assetId        String?
-  
-  assetName      String              // Store at scanning time in case asset is deleted later
-  category       String?
-  status         String?
-  location       String?
-  locationMismatch Boolean           @default(false)
-  
-  // Relations
-  bundle         ReconciliationBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
-  bundleId       String
-  
-  // Timestamps
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  
-  @@index([bundleId])
-  @@index([rfidTag])
-  @@index([assetId])
 }

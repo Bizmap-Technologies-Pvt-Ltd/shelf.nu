@@ -71,9 +71,7 @@ export async function createReconciliationBundle(
       validItems.push(validItem);
     }
     
-    // Use Prisma client directly without TypeScript checking
-    // @ts-ignore - The reconciliationBundle model exists at runtime even if TypeScript doesn't recognize it
-    return await (db as any).reconciliationBundle.create({
+    return await db.reconciliationBundle.create({
       data: {
         bundleId: input.bundleId,
         locationId: input.locationId,
@@ -105,40 +103,34 @@ export async function getReconciliationBundles(
   }
 ): Promise<{ bundles: ReconciliationBundleWithRelations[]; total: number }> {
   try {
-    // @ts-ignore - The reconciliationBundle model exists at runtime even if TypeScript doesn't recognize it
-    try {
-      const [bundles, total] = await Promise.all([
-        (db as any).reconciliationBundle.findMany({
-          where: {
-            organizationId,
-          },
-          include: {
-            location: true,
-            scannedBy: true,
-            items: {
-              include: {
-                asset: true,
-              },
+    const [bundles, total] = await Promise.all([
+      db.reconciliationBundle.findMany({
+        where: {
+          organizationId,
+        },
+        include: {
+          location: true,
+          scannedBy: true,
+          items: {
+            include: {
+              asset: true,
             },
           },
-          orderBy: {
-            date: "desc",
-          },
-          take: options?.limit,
-          skip: options?.offset,
-        }),
-        (db as any).reconciliationBundle.count({
-          where: {
-            organizationId,
-          },
-        }),
-      ]);
-      
-      return { bundles, total };
-    } catch (queryError) {
-      // Return empty results rather than failing completely
-      return { bundles: [], total: 0 };
-    }
+        },
+        orderBy: {
+          date: "desc",
+        },
+        take: options?.limit,
+        skip: options?.offset,
+      }),
+      db.reconciliationBundle.count({
+        where: {
+          organizationId,
+        },
+      }),
+    ]);
+    
+    return { bundles, total };
   } catch (cause) {
     throw new ShelfError({
       cause,
@@ -156,7 +148,7 @@ export async function getReconciliationBundle(
   organizationId: Organization["id"],
 ): Promise<ReconciliationBundleWithRelations | null> {
   try {
-    return await (db as any).reconciliationBundle.findFirst({
+    return await db.reconciliationBundle.findFirst({
       where: {
         id,
         organizationId,

@@ -18,6 +18,7 @@ import { requirePermission } from "~/utils/roles.server";
 import { PermissionAction, PermissionEntity } from "~/utils/permissions/permission.data";
 import { getUserByID } from "~/modules/user/service.server";
 import { getAllEntriesForCreateAndEdit } from "~/modules/asset/service.server";
+import { getReconciliationBundles } from "~/modules/reconciliation/service.server";
 
 export const meta: MetaFunction = () => [
   { title: appendToMetaTitle("Assets Reconciliation") },
@@ -83,48 +84,38 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       request,
     });
     
-    // Fetch reconciliation bundles from the API - using relative URL for environment portability
-    const apiUrl = new URL('/api/reconciliation', request.url).toString();
-    const bundlesResponse = await fetch(apiUrl, {
-      headers: {
-        Cookie: request.headers.get("Cookie") || "",
-      }
-    });
-    
+    // Get reconciliation bundles directly instead of making an API call
     let recentReconciliations: ReconciliationBundle[] = [];
     
     try {
-      if (bundlesResponse.ok) {
-        const bundlesData = await bundlesResponse.json();
-        // Extract bundles based on API response structure
-        if (bundlesData && Array.isArray(bundlesData.bundles)) {
-          
-          // Make sure we properly handle null assetIds
-          recentReconciliations = bundlesData.bundles
-            .filter((bundle: any) => bundle && typeof bundle === 'object') // Ensure we only process valid objects
-            .map((bundle: any) => ({
-                id: bundle.id || "",
-                date: bundle.date || new Date().toISOString(),
-                locationName: bundle.locationName || "Unknown Location", 
-                scannedBy: bundle.scannedBy || "Unknown User",
-                scannedByEmail: bundle.scannedByEmail || "unknown@example.com",
-                totalItems: bundle.totalItems || 0,
-                status: bundle.status || "Completed",
-                items: Array.isArray(bundle.items) ? bundle.items
-                  .filter((item: any) => item && typeof item === 'object') // Filter valid items
-                  .map((item: any) => ({
-                    rfidTag: item.rfidTag || "",
-                    assetId: item.assetId === null || item.assetId === undefined ? null : item.assetId,
-                    assetName: item.assetName || "Unknown Asset",
-                    category: item.category || "Unknown",
-                    status: item.status || "Unknown",
-                    location: item.location || "Unknown",
-                  })) : []
-            }));
-        }
-      }
+      const { bundles } = await getReconciliationBundles(organizationId, {
+        limit: 50,
+        offset: 0,
+      });
+
+      // Format the bundles for the frontend
+      recentReconciliations = bundles.map((bundle) => ({
+        id: bundle.bundleId || bundle.id || "",
+        date: bundle.date ? bundle.date.toISOString() : new Date().toISOString(),
+        locationName: bundle.location?.name || "Unknown Location",
+        scannedBy: bundle.scannedBy ? 
+          `${bundle.scannedBy.firstName || ""} ${bundle.scannedBy.lastName || ""}`.trim() || 
+          bundle.scannedBy.email || "Unknown User" : "Unknown User",
+        scannedByEmail: bundle.scannedBy?.email || "unknown@example.com",
+        totalItems: Array.isArray(bundle.items) ? bundle.items.length : 0,
+        status: bundle.status === "COMPLETED" ? "Completed" : "In Progress",
+        items: Array.isArray(bundle.items) ? bundle.items.map((item) => ({
+          rfidTag: item.rfidTag || "",
+          assetId: item.assetId === null || item.assetId === undefined ? null : item.assetId,
+          assetName: item.assetName || "Unknown Asset",
+          category: item.category || "Unknown",
+          status: (item.status === "Available" || item.status === "In Use") ? item.status : "Available" as "Available" | "In Use",
+          location: item.location || "Unknown",
+        })) : []
+      }));
     } catch (error) {
       // Handle error silently - could add server-side logging or notification here
+      console.error("Failed to load reconciliation bundles:", error);
     }
 
     
