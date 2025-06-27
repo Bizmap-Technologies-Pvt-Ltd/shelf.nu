@@ -64,7 +64,7 @@ export async function createReconciliationBundle(
           }
         } catch (err) {
           // If there's an error finding the asset, keep assetId as null
-          console.error(`Error finding asset with ID ${item.assetId}:`, err);
+          // Silent error handling - asset ID will remain null
         }
       }
       
@@ -105,9 +105,6 @@ export async function getReconciliationBundles(
   }
 ): Promise<{ bundles: ReconciliationBundleWithRelations[]; total: number }> {
   try {
-    console.log('Retrieving reconciliation bundles for organizationId:', organizationId);
-    console.log('Options:', options);
-    
     // @ts-ignore - The reconciliationBundle model exists at runtime even if TypeScript doesn't recognize it
     try {
       const [bundles, total] = await Promise.all([
@@ -136,20 +133,9 @@ export async function getReconciliationBundles(
           },
         }),
       ]);
-
-      console.log(`Found ${bundles.length} reconciliation bundles`);
-      if (bundles.length > 0) {
-        console.log('First bundle sample:', JSON.stringify({
-          id: bundles[0].id,
-          bundleId: bundles[0].bundleId,
-          locationId: bundles[0].locationId,
-          items: bundles[0].items?.length || 0
-        }));
-      }
-
+      
       return { bundles, total };
     } catch (queryError) {
-      console.error('Error in Prisma query:', queryError);
       // Return empty results rather than failing completely
       return { bundles: [], total: 0 };
     }

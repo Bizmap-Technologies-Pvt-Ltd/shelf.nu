@@ -46,20 +46,12 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     const limit = Number(url.searchParams.get("limit") || "50");
     const offset = Number(url.searchParams.get("offset") || "0");
 
-    // Log the organizationId and query parameters
-    console.log('Getting reconciliation bundles for organizationId:', organizationId);
-    console.log('Query params - limit:', limit, 'offset:', offset);
-
     // Get reconciliation bundles
     // This will return empty results until the migration is run
     const { bundles, total } = await getReconciliationBundles(organizationId, {
       limit,
       offset,
     });
-
-    // Debug log the raw bundles from the database
-    console.log('Raw bundles from database:', JSON.stringify(bundles));
-    console.log('Total bundles count:', total);
 
     // Format the response with additional error handling
     const formattedBundles = [];
@@ -100,22 +92,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
           
           formattedBundles.push(formattedBundle);
         } catch (formatError) {
-          console.error('Error formatting bundle:', formatError);
           // Skip this bundle on error
           continue;
         }
       }
     } catch (e) {
-      console.error('Error processing bundles:', e);
+      // Handle error silently
     }
-    
-    console.log(`Formatted ${formattedBundles.length} bundles for API response`);
-
-    // Log what we're responding with
-    console.log('API response data structure:', {
-      bundles: formattedBundles,
-      total
-    });
     
     return json(
       data({

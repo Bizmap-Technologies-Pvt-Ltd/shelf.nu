@@ -25,9 +25,6 @@ export type ReconciliationBundle = {
 export function ReconciliationBundlesTable({ bundles = [] }: { bundles?: ReconciliationBundle[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
-  // Debug log
-  console.log('Rendering ReconciliationBundlesTable with bundles:', bundles);
-  console.log('Bundles length:', bundles?.length || 0);
   
   // Filter out any invalid bundles (missing required properties)
   const validBundles = (bundles || []).filter(bundle => 

@@ -102,8 +102,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
           // Make sure we properly handle null assetIds
           recentReconciliations = bundlesData.bundles
             .filter((bundle: any) => bundle && typeof bundle === 'object') // Ensure we only process valid objects
-            .map((bundle: any) => {
-              return {
+            .map((bundle: any) => ({
                 id: bundle.id || "",
                 date: bundle.date || new Date().toISOString(),
                 locationName: bundle.locationName || "Unknown Location", 
@@ -121,12 +120,11 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
                     status: item.status || "Unknown",
                     location: item.location || "Unknown",
                   })) : []
-              };
-            });
+            }));
         }
       }
     } catch (error) {
-      console.error("Error fetching reconciliation bundles:", error);
+      // Handle error silently - could add server-side logging or notification here
     }
 
     
