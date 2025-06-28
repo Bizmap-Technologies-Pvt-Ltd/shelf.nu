@@ -108,6 +108,13 @@ import { createKitsIfNotExists } from "../kit/service.server";
 
 import { createNote } from "../note/service.server";
 import { getUserByID } from "../user/service.server";
+import { assetCacheUtils } from "~/utils/cache.server";
+
+// Cache for expensive asset queries
+const assetQueryCache = new LRUCache<string, any>({
+  max: 500,
+  ttl: 1000 * 60 * 2, // 2 minutes
+});
 
 const label: ErrorLabel = "Assets";
 
@@ -707,6 +714,28 @@ export async function getAdvancedPaginatedAndFilterableAssets({
   const cookie = await updateCookieWithPerPage(request, perPageParam);
   const { perPage } = cookie;
 
+  // Create cache key for this specific query
+  const cacheKeyParams = [
+    organizationId,
+    search || '',
+    filters || '',
+    page.toString(),
+    perPage.toString(),
+    assetIds?.join(',') || '',
+    getBookings.toString(),
+    takeAll.toString(),
+  ].join('_');
+  
+  const cacheKey = `advanced_assets_${cacheKeyParams}`;
+  
+  // Check cache first for read operations (not for write operations)
+  if (!takeAll && (search?.length || 0) < 50) { // Cache only for reasonable search terms
+    const cachedResult = assetCacheUtils.get(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+  }
+
   try {
     const skip = page > 1 ? (page - 1) * perPage : 0;
     const take = Math.min(Math.max(perPage, 1), 100);
@@ -759,7 +788,7 @@ export async function getAdvancedPaginatedAndFilterableAssets({
     const assets: AdvancedIndexAsset[] = result[0].assets;
     const totalPages = Math.ceil(totalAssets / take);
 
-    return {
+    const finalResult = {
       search,
       totalAssets,
       perPage: take,
@@ -768,6 +797,13 @@ export async function getAdvancedPaginatedAndFilterableAssets({
       totalPages,
       cookie,
     };
+
+    // Cache the result for future queries (with shorter TTL for frequently changing data)
+    if (!takeAll && (search?.length || 0) < 50) {
+      assetCacheUtils.set(cacheKey, finalResult, 1000 * 60 * 2); // 2 minutes cache
+    }
+
+    return finalResult;
   } catch (cause) {
     throw new ShelfError({
       cause,
@@ -1634,6 +1670,15 @@ export async function getPaginatedAndFilterableAssets({
   const cookie = await updateCookieWithPerPage(request, perPageParam);
   const { perPage } = cookie;
 
+  // Create cache key for this specific query combination
+  const cacheKey = `paginated_assets_${organizationId}_${search || ''}_${page}_${perPage}_${orderBy}_${orderDirection}_${status || ''}_${categoriesIds?.join(',') || ''}_${tagsIds?.join(',') || ''}_${locationIds?.join(',') || ''}_${filters}`;
+  
+  // Check cache first for identical queries
+  const cachedResult = assetCacheUtils.get(cacheKey);
+  if (cachedResult && !search && page <= 3) { // Cache first few pages only, not search results
+    return cachedResult;
+  }
+
   try {
     const {
       tags,
@@ -1679,7 +1724,7 @@ export async function getPaginatedAndFilterableAssets({
 
     const totalPages = Math.ceil(totalAssets / perPage);
 
-    return {
+    const result = {
       page,
       perPage,
       search,
@@ -1695,6 +1740,13 @@ export async function getPaginatedAndFilterableAssets({
       totalLocations,
       ...teamMembersData,
     };
+
+    // Cache the result for faster subsequent requests (only for non-search, first few pages)
+    if (!search && page <= 3 && totalAssets < 1000) {
+      assetCacheUtils.set(cacheKey, result, 1000 * 60 * 3); // 3 minutes cache
+    }
+
+    return result;
   } catch (cause) {
     throw new ShelfError({
       cause,

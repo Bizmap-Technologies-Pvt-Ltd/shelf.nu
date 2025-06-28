@@ -12,13 +12,21 @@ function hydrate() {
         <JotaiProvider>
           <RemixBrowser />
         </JotaiProvider>
-      </React.StrictMode>
+      </React.StrictMode>,
+      {
+        onRecoverableError: (error) => {
+          console.error("Recoverable hydration error:", error);
+        },
+      }
     );
   });
 }
 
-if (typeof requestIdleCallback === "function") {
-  requestIdleCallback(hydrate);
+// Performance optimization: Use faster hydration strategy
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", hydrate);
+} else if (typeof requestIdleCallback === "function") {
+  requestIdleCallback(hydrate, { timeout: 100 });
 } else {
   // Safari doesn't support requestIdleCallback
   // https://caniuse.com/requestidlecallback

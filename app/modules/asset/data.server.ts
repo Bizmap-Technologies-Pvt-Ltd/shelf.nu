@@ -35,6 +35,7 @@ import { getActiveCustomFields } from "../custom-field/service.server";
 import type { OrganizationFromUser } from "../organization/service.server";
 import { getTeamMemberForCustodianFilter } from "../team-member/service.server";
 import { getOrganizationTierLimit } from "../tier/service.server";
+import { assetCacheUtils } from "~/utils/cache.server";
 
 interface Props {
   request: Request;
@@ -77,7 +78,9 @@ export async function simpleModeLoader({
   const searchParams = getCurrentSearchParams(request);
   const view = searchParams.get("view") ?? "table";
 
-  /** Query tierLimit, assets & Asset index settings */
+  /** Query tierLimit, assets & Asset index settings - with caching optimization */
+  const cacheKey = `simple_mode_${organizationId}_${userId}`;
+  
   let [
     tierLimit,
     {
@@ -98,10 +101,13 @@ export async function simpleModeLoader({
       totalTeamMembers,
     },
   ] = await Promise.all([
-    getOrganizationTierLimit({
-      organizationId,
-      organizations,
-    }),
+    // Cache tier limit as it rarely changes
+    assetCacheUtils.withCache(`tier_limit_${organizationId}`, () =>
+      getOrganizationTierLimit({
+        organizationId,
+        organizations,
+      })
+    ),
     getPaginatedAndFilterableAssets({
       request,
       organizationId,
