@@ -17,62 +17,20 @@ const buildHash = process.env.BUILD_HASH || createHash();
 export default defineConfig({
   server: {
     port: 3000,
-    host: true,
     warmup: {
       clientFiles: [
         "./app/entry.client.tsx",
         "./app/root.tsx",
         "./app/routes/**/*",
-        "./app/components/**/*",
       ],
     },
-    middlewareMode: false,
-    preTransformRequests: true,
-    hmr: {
-      overlay: false, // Disable overlay for faster dev
-    },
-    fs: {
-      allow: ['..']
-    }
   },
   optimizeDeps: {
-    include: [
-      "./app/routes/**/*",
-      "react",
-      "react-dom",
-      "react/jsx-runtime",
-      "@remix-run/react",
-      "@radix-ui/react-dropdown-menu",
-      "@radix-ui/react-select", 
-      "@radix-ui/react-tabs",
-      "@radix-ui/react-toast",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-checkbox",
-      "lucide-react",
-      "date-fns",
-      "lodash",
-      "@prisma/client",
-      "zod",
-      "lru-cache"
-    ],
-    force: false, // Let Vite decide when to re-optimize
-    esbuildOptions: {
-      target: 'es2022',
-      loader: { '.js': 'jsx' }
-    }
-  },
-  esbuild: {
-    target: "es2022",
-    keepNames: true,
-    minifyIdentifiers: false,
+    include: ["./app/routes/**/*"],
   },
   build: {
     target: "ES2022",
     assetsDir: `file-assets`,
-    minify: "esbuild",
-    sourcemap: false,
-    cssCodeSplit: true,
-    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         entryFileNames: `file-assets/${buildHash}/[name]-[hash].js`,
@@ -82,19 +40,7 @@ export default defineConfig({
         assetFileNames() {
           return `file-assets/${buildHash}/[name][extname]`;
         },
-        manualChunks: {
-          // Remove all manual chunks to fix SSR build - external modules cannot be included in manualChunks
-          // vendor: ['react', 'react-dom'], // Remove react from manual chunks to fix SSR build
-          // remix: ['@remix-run/react'], // Remove remix from manual chunks to fix SSR build
-          // ui: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-dialog'], // Remove UI libraries from manual chunks to fix SSR build
-          // icons: ['lucide-react'], // Remove icons from manual chunks to fix SSR build
-          // utils: ['date-fns', 'lodash', 'zod'], // Remove utils from manual chunks to fix SSR build
-          // cache: ['lru-cache'] // Remove cache from manual chunks to fix SSR build
-        }
       },
-      treeshake: {
-        moduleSideEffects: false
-      }
     },
   },
   resolve: {
@@ -117,10 +63,7 @@ export default defineConfig({
     remix({
       ignoredRouteFiles: ["**/.*"],
       future: {
-        unstable_optimizeDeps: true,
-        v3_fetcherPersist: true,
-        v3_relativeSplatPath: true,
-        v3_throwAbortReason: true,
+        // unstable_optimizeDeps: true,
       },
       routes: async (defineRoutes) => {
         return flatRoutes("routes", defineRoutes);

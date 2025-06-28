@@ -35,8 +35,6 @@ import { checkExhaustiveSwitch } from "~/utils/check-exhaustive-switch";
 import { sendNotification } from "~/utils/emitter/send-notification.server";
 import { ShelfError, makeShelfError } from "~/utils/error";
 import { data, error, parseData } from "~/utils/http.server";
-import { measureRouteLoader } from "~/utils/performance.server";
-import { preloadCache } from "~/utils/preload-cache.server";
 import {
   PermissionAction,
   PermissionEntity,
@@ -54,125 +52,81 @@ export const links: LinksFunction = () => [
 export async function loader({ context, request }: LoaderFunctionArgs) {
   const authSession = context.getSession();
   const { userId } = authSession;
-  
-  return measureRouteLoader("assets._index", async () => {
-    try {
-      // Fast permission check with cached data and parallel user fetch
-      const [permissionResult, user] = await Promise.all([
+  try {
+    /** Validate permissions and fetch user */
+    const [{ organizationId, organizations, currentOrganization, role }, user] =
+      await Promise.all([
         requirePermission({
           userId,
           request,
           entity: PermissionEntity.asset,
           action: PermissionAction.read,
-        }).catch((permissionError) => {
-          console.error("Permission check failed:", permissionError);
-          throw new ShelfError({
-            cause: permissionError,
-            message: "Permission verification failed. Please refresh and try again.",
-            additionalData: { userId },
-            label: "Assets",
-            status: 403,
-          });
         }),
-        // Optimized user query with reliable fallback
-        db.user.findUniqueOrThrow({
-          where: { id: userId },
-          select: { firstName: true },
-        }).catch((userError) => {
-          console.error("User fetch failed:", userError);
-          // Return fallback user data instead of throwing
-          return { firstName: null };
-        }),
+        db.user
+          .findUniqueOrThrow({
+            where: {
+              id: userId,
+            },
+            select: {
+              firstName: true,
+            },
+          })
+          .catch((cause) => {
+            throw new ShelfError({
+              cause,
+              message:
+                "We can't find your user data. Please try again or contact support.",
+              additionalData: { userId },
+              label: "Assets",
+            });
+          }),
       ]);
 
-      const { organizationId, organizations, currentOrganization, role } = permissionResult;
+    const settings = await getAssetIndexSettings({ userId, organizationId });
+    const mode = settings.mode;
 
-      // Validate critical data before proceeding
-      if (!organizationId || !currentOrganization) {
-        throw new ShelfError({
-          cause: null,
-          message: "Organization data not available. Please refresh the page.",
-          additionalData: { userId, organizationId },
-          label: "Assets",
-          status: 400,
-        });
-      }
-
-      // Fire and forget cache preloading for faster subsequent requests
-      setImmediate(() => {
-        preloadCache(organizationId, userId).catch((preloadError: any) => {
-          console.warn("Cache preloading failed:", preloadError);
-          // Don't fail the request for preload errors
-        });
+    /** For base and self service users, we dont allow to view the advanced index */
+    if (mode === "ADVANCED" && ["BASE", "SELF_SERVICE"].includes(role)) {
+      await changeMode({
+        userId,
+        organizationId,
+        mode: "SIMPLE",
       });
-
-      const settings = await getAssetIndexSettings({ userId, organizationId }).catch(async (settingsError) => {
-        console.warn("Settings fetch failed, creating defaults:", settingsError);
-        // Try to create default settings
-        try {
-          const { createUserAssetIndexSettings } = await import("~/modules/asset-index-settings/service.server");
-          return await createUserAssetIndexSettings({ userId, organizationId });
-        } catch (createError) {
-          console.error("Failed to create default settings:", createError);
-          // Last fallback - minimal settings object
-          return {
-            userId,
-            organizationId,
-            id: `temp-${Date.now()}`,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            mode: "SIMPLE" as const,
-            columns: [],
-            freezeColumn: false,
-            showAssetImage: true,
-          };
-        }
+      throw new ShelfError({
+        cause: null,
+        title: "Not allowed",
+        message:
+          "You don't have permission to access the advanced mode. We will automatically switch you back to 'simple' mode. Please reload the page.",
+        label: "Assets",
+        status: 403,
       });
-      const mode = settings.mode;
+    }
 
-      /** For base and self service users, we dont allow to view the advanced index */
-      if (mode === "ADVANCED" && ["BASE", "SELF_SERVICE"].includes(role)) {
-        await changeMode({
+    return mode === "SIMPLE"
+      ? await simpleModeLoader({
+          request,
           userId,
           organizationId,
-          mode: "SIMPLE",
+          organizations,
+          role,
+          currentOrganization,
+          user,
+          settings,
+        })
+      : await advancedModeLoader({
+          request,
+          userId,
+          organizationId,
+          organizations,
+          role,
+          currentOrganization,
+          user,
+          settings,
         });
-        throw new ShelfError({
-          cause: null,
-          title: "Not allowed",
-          message:
-            "You don't have permission to access the advanced mode. We will automatically switch you back to 'simple' mode. Please reload the page.",
-          label: "Assets",
-          status: 403,
-        });
-      }
-
-      return mode === "SIMPLE"
-        ? await simpleModeLoader({
-            request,
-            userId,
-            organizationId,
-            organizations,
-            role,
-            currentOrganization,
-            user,
-            settings,
-          })
-        : await advancedModeLoader({
-            request,
-            userId,
-            organizationId,
-            organizations,
-            role,
-            currentOrganization,
-            user,
-            settings,
-          });
-    } catch (cause) {
-      const reason = makeShelfError(cause, { userId });
-      throw json(error(reason), { status: reason.status });
-    }
-  });
+  } catch (cause) {
+    const reason = makeShelfError(cause, { userId });
+    throw json(error(reason), { status: reason.status });
+  }
 }
 
 export async function action({ context, request }: ActionFunctionArgs) {
@@ -236,42 +190,18 @@ export async function action({ context, request }: ActionFunctionArgs) {
 }
 
 export function shouldRevalidate({
-  formMethod,
-  currentUrl,
-  nextUrl,
-  formAction,
   actionResult,
+  defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
-  // Only revalidate if:
-  // 1. It's a form submission (POST, PUT, DELETE)
-  // 2. URL search params have changed (filters, pagination)
-  // 3. Organization has changed
-  
-  if (formMethod && formMethod !== "GET") {
-    return true;
+  /**
+   * If we are toggling the sidebar, no need to revalidate this loader.
+   * Revalidation happens in _layout
+   */
+  if (actionResult?.isTogglingSidebar) {
+    return false;
   }
 
-  // Check if organizationId changed
-  const currentOrgId = currentUrl.searchParams.get("organizationId");
-  const nextOrgId = nextUrl.searchParams.get("organizationId");
-  if (currentOrgId !== nextOrgId) {
-    return true;
-  }
-
-  // Check if search/filter params changed
-  const relevantParams = [
-    "search", "status", "category", "location", "tag", "custody", 
-    "page", "per", "sort", "order", "view"
-  ];
-  
-  for (const param of relevantParams) {
-    if (currentUrl.searchParams.get(param) !== nextUrl.searchParams.get(param)) {
-      return true;
-    }
-  }
-
-  // Don't revalidate for navigation without param changes
-  return false;
+  return defaultShouldRevalidate;
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
