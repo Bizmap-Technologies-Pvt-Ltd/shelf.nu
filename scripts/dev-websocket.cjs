@@ -20,8 +20,11 @@ const wss = new WebSocketServer({
 
 console.log(`[WebSocket] RFID WebSocket server listening on port ${port}`);
 
-// Initialize database connection
+// Robust: Track DB ready state
+let dbReady = false;
+
 initializeDb().then((success) => {
+  dbReady = success;
   if (success) {
     console.log('[WebSocket] Ready to serve real asset data from database');
   } else {
@@ -29,27 +32,29 @@ initializeDb().then((success) => {
   }
 });
 
-// Store active connections and sessions
 const activeConnections = new Map();
 const activeSessions = new Map();
 
 wss.on('connection', (ws, request) => {
   const connectionId = crypto.randomUUID();
-  
   console.log(`[WebSocket] New RFID connection: ${connectionId}`);
-  
-  activeConnections.set(connectionId, { 
-    ws, 
-    userId: '', 
-    organizationId: '' 
-  });
+  activeConnections.set(connectionId, { ws });
 
   ws.on('message', async (data) => {
+    let message;
     try {
-      const message = JSON.parse(data.toString());
-      
+      message = JSON.parse(data.toString());
+    } catch (error) {
+      ws.send(JSON.stringify({
+        type: 'ERROR',
+        error: 'Invalid message format',
+        timestamp: Date.now()
+      }));
+      return;
+    }
+    try {
       switch (message.type) {
-        case 'START_SESSION':
+        case 'START_SESSION': {
           const sessionId = message.sessionId || crypto.randomUUID();
           activeSessions.set(sessionId, {
             connectionId,
@@ -58,15 +63,14 @@ wss.on('connection', (ws, request) => {
             startTime: Date.now(),
             tags: new Set()
           });
-          
           ws.send(JSON.stringify({
             type: 'SESSION_STARTED',
             sessionId,
             timestamp: Date.now()
           }));
           break;
-
-        case 'END_SESSION':
+        }
+        case 'END_SESSION': {
           if (message.sessionId) {
             activeSessions.delete(message.sessionId);
             ws.send(JSON.stringify({
@@ -76,8 +80,8 @@ wss.on('connection', (ws, request) => {
             }));
           }
           break;
-
-        case 'SCAN_RFID':
+        }
+        case 'SCAN_RFID': {
           if (!message.rfidTag || !message.sessionId) {
             ws.send(JSON.stringify({
               type: 'ERROR',
@@ -86,7 +90,6 @@ wss.on('connection', (ws, request) => {
             }));
             return;
           }
-
           const session = activeSessions.get(message.sessionId);
           if (!session) {
             ws.send(JSON.stringify({
@@ -96,36 +99,35 @@ wss.on('connection', (ws, request) => {
             }));
             return;
           }
-
-          // Check for duplicate tags in this session
-          if (session.tags.has(message.rfidTag)) {
-            return;
-          }
-
+          if (session.tags.has(message.rfidTag)) return;
           session.tags.add(message.rfidTag);
-          
-          // Look up real asset data from the database
           let asset = null;
-          try {
-            const foundAsset = await getAssetByRfid(message.rfidTag, session.organizationId);
-            
-            if (foundAsset) {
-              asset = {
-                id: foundAsset.id,
-                title: foundAsset.title,
-                status: foundAsset.status,
-                category: foundAsset.category ? { name: foundAsset.category.name } : undefined,
-                location: foundAsset.location ? { 
-                  id: foundAsset.location.id,
-                  name: foundAsset.location.name 
-                } : undefined,
-              };
+          if (dbReady) {
+            try {
+              const foundAsset = await getAssetByRfid(message.rfidTag, session.organizationId);
+              if (foundAsset) {
+                asset = {
+                  id: foundAsset.id,
+                  title: foundAsset.title,
+                  status: foundAsset.status,
+                  category: foundAsset.category ? { name: foundAsset.category.name } : undefined,
+                  location: foundAsset.location ? { id: foundAsset.location.id, name: foundAsset.location.name } : undefined,
+                };
+              }
+            } catch (error) {
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                error: 'DB lookup failed',
+                timestamp: Date.now()
+              }));
             }
-          } catch (error) {
-            console.error(`[WebSocket] Error looking up asset for ${message.rfidTag}:`, error);
-            // Asset remains null
+          } else {
+            ws.send(JSON.stringify({
+              type: 'ERROR',
+              error: 'DB not ready',
+              timestamp: Date.now()
+            }));
           }
-
           ws.send(JSON.stringify({
             type: 'RFID_RESULT',
             sessionId: message.sessionId,
@@ -134,40 +136,36 @@ wss.on('connection', (ws, request) => {
             timestamp: Date.now()
           }));
           break;
-
-        case 'PING':
+        }
+        case 'PING': {
           ws.send(JSON.stringify({
             type: 'PONG',
             timestamp: Date.now()
           }));
           break;
-
-        default:
+        }
+        default: {
           ws.send(JSON.stringify({
             type: 'ERROR',
             error: `Unknown message type: ${message.type}`,
             timestamp: Date.now()
           }));
+        }
       }
     } catch (error) {
-      console.error('[WebSocket] Message parsing error:', error);
       ws.send(JSON.stringify({
         type: 'ERROR',
-        error: 'Invalid message format',
+        error: 'Internal server error',
         timestamp: Date.now()
       }));
     }
   });
 
   ws.on('close', () => {
-    console.log(`[WebSocket] Connection closed: ${connectionId}`);
     activeConnections.delete(connectionId);
-    
-    // Clean up any sessions for this connection
     for (const [sessionId, session] of activeSessions.entries()) {
       if (session.connectionId === connectionId) {
         activeSessions.delete(sessionId);
-        console.log(`[WebSocket] Cleaned up session: ${sessionId}`);
       }
     }
   });
@@ -177,19 +175,11 @@ wss.on('connection', (ws, request) => {
   });
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log("[WebSocket] Shutting down WebSocket server...");
-  await closeDb();
-  wss.close(() => {
-    process.exit(0);
-  });
-});
-
-process.on('SIGTERM', async () => {
-  console.log("[WebSocket] Shutting down WebSocket server...");
-  await closeDb();
-  wss.close(() => {
-    process.exit(0);
-  });
-});
+// Robust: Handle shutdown and cleanup
+const shutdown = async () => {
+  console.log('[WebSocket] Shutting down WebSocket server...');
+  try { await closeDb(); } catch {}
+  wss.close(() => process.exit(0));
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

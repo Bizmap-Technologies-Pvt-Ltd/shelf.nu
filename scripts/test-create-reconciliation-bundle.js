@@ -3,37 +3,51 @@
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+const argv = yargs(hideBin(process.argv))
+  .option('org', { type: 'string', describe: 'Organization ID' })
+  .option('user', { type: 'string', describe: 'User ID' })
+  .option('location', { type: 'string', describe: 'Location ID' })
+  .help().argv;
 
 // First, let's try to find valid IDs from the database to use
 
 async function createTestBundle() {
+  let org, user, location;
   try {
-    // Try to find a valid organization, user, and location from the database
-    console.log('Finding valid IDs from database...');
-    
-    // Get the first organization
-    const org = await prisma.organization.findFirst();
-    if (!org) throw new Error('No organization found');
-    
-    // Get a user that belongs to this organization
-    const user = await prisma.user.findFirst({
-      where: {
-        organizations: {
-          some: {
-            organizationId: org.id
+    if (argv.org && argv.user && argv.location) {
+      org = { id: argv.org };
+      user = { id: argv.user };
+      location = { id: argv.location };
+      console.log('Using IDs from CLI args');
+    } else {
+      console.log('Finding valid IDs from database...');
+      
+      // Get the first organization
+      org = await prisma.organization.findFirst();
+      if (!org) throw new Error('No organization found');
+      
+      // Get a user that belongs to this organization
+      user = await prisma.user.findFirst({
+        where: {
+          organizations: {
+            some: {
+              organizationId: org.id
+            }
           }
         }
-      }
-    });
-    if (!user) throw new Error('No user found');
-    
-    // Get a location for this organization
-    const location = await prisma.location.findFirst({
-      where: {
-        organizationId: org.id
-      }
-    });
-    if (!location) throw new Error('No location found');
+      });
+      if (!user) throw new Error('No user found');
+      
+      // Get a location for this organization
+      location = await prisma.location.findFirst({
+        where: {
+          organizationId: org.id
+        }
+      });
+      if (!location) throw new Error('No location found');
+    }
     
     const testOrgId = org.id;
     const testUserId = user.id;
@@ -81,6 +95,7 @@ async function createTestBundle() {
     console.error('Error creating test bundle:', error);
   } finally {
     await prisma.$disconnect();
+    process.exit(0);
   }
 }
 
