@@ -22,6 +22,9 @@ export interface UseRfidProcessorReturn {
   clearTags: () => void;
 }
 
+// Optional: Throttle duplicate tag processing (configurable)
+const TAG_THROTTLE_MS = 200; // Change as needed or make configurable
+
 export function useRfidProcessor(
   onTagsProcessed?: (tags: RfidTag[]) => void
 ): UseRfidProcessorReturn {
@@ -35,10 +38,10 @@ export function useRfidProcessor(
   const seenTagsRef = useRef<Map<string, number>>(new Map());
   const processedTagsRef = useRef<RfidTag[]>([]);
   const maxTagsRef = useRef(10000); // Prevent memory bloat
+  const lastTagTimeRef = useRef<Map<string, number>>(new Map());
 
   const processTags = useCallback((tags: string[]) => {
     if (!isRunning || !tags.length) return;
-
     const now = Date.now();
     const newTags: RfidTag[] = [];
     let sent = 0;
@@ -65,6 +68,14 @@ export function useRfidProcessor(
         // Skip invalid tags silently in production
         return;
       }
+      
+      // Throttle: Only allow if last seen > TAG_THROTTLE_MS ago
+      const lastTime = lastTagTimeRef.current.get(cleanTag) || 0;
+      if (now - lastTime < TAG_THROTTLE_MS) {
+        skipped++;
+        return;
+      }
+      lastTagTimeRef.current.set(cleanTag, now);
       
       // Check if tag has been seen before (NO TIME-BASED COOLDOWN)
       const alreadySeen = seenTagsRef.current.has(cleanTag);

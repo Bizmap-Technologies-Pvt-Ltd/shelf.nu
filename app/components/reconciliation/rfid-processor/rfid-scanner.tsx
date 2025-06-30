@@ -2,6 +2,7 @@ import { Button } from "~/components/shared/button";
 import { useRfidProcessor, useDummyRfid, type RfidTag, RFID_CONFIG } from ".";
 import { useCallback, useRef, useEffect, useState } from "react";
 import { delay } from "lodash";
+import React from "react";
 
 // Default values for removed config options
 const SHOW_LIVE_STATUS = true;
@@ -972,4 +973,27 @@ export function RfidScanner({
       )}
     </div>
   );
+}
+
+// ErrorBoundary for RFID Scanner
+export class RfidScannerErrorBoundary extends React.Component<{
+  children: React.ReactNode;
+}, { hasError: boolean; error?: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, info: any) {
+    // Log error to remote if needed
+    console.error('[RFID Scanner ErrorBoundary]', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div className="p-4 text-red-600 bg-red-50 rounded">RFID Scanner crashed: {String(this.state.error)}</div>;
+    }
+    return this.props.children;
+  }
 }

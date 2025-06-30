@@ -83,11 +83,11 @@ export function ScanRfidDialog({
 
         const currentLocation = result.asset.location?.name || "No Location Assigned";
         const currentLocationId = result.asset.location?.id;
-        
+
         // Check if the asset's current location is different from the selected reconciliation location
         const locationMismatch = !!(
-          selectedLocationId && 
-          currentLocationId && 
+          selectedLocationId &&
+          currentLocationId &&
           currentLocationId !== selectedLocationId
         );
 
@@ -168,7 +168,7 @@ export function ScanRfidDialog({
 
     // Save the bundle first so it includes all items
     onSave(items, selectedLocationId);
-    
+
     // Then update global state and close
     setGlobalScannedItems(items);
     setScannedItems([]);
@@ -189,7 +189,8 @@ export function ScanRfidDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="w-[95vw] max-w-4xl min-h-[10vh] max-h-[80vh] mx-4 my-4 sm:mx-auto sm:my-8 border-lg px-0 flex flex-col overflow-hidden">
+      <AlertDialogContent className="w-[95vw] max-w-4xl max-h-[90vh] mx-4 my-4 sm:mx-auto sm:my-8 border-lg px-0 flex flex-col overflow-hidden">
+        {/* Header */}
         <AlertDialogHeader className="px-4 sm:px-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <AlertDialogTitle className="text-lg sm:text-xl font-semibold">Scan RFID Tags</AlertDialogTitle>
@@ -198,14 +199,13 @@ export function ScanRfidDialog({
             </button>
           </div>
           <AlertDialogDescription className="text-xs sm:text-sm text-gray-600 mt-2">
-           Click start to begin scanning RFID tags
+            Click start to begin scanning RFID tags
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className={`p-4 sm:p-6 flex-1 min-h-0 ${
-          RFID_CONFIG.SHOW_RFID_SCANNER ? "overflow-y-auto" : "overflow-hidden"
-        }`}>
-          {/* Location Selection and Action Buttons */}
+        {/* Content Body */}
+        <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6`}>
+          {/* Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex-1 w-full sm:max-w-md">
               <DynamicSelect
@@ -217,10 +217,7 @@ export function ScanRfidDialog({
                 countKey="totalLocations"
                 closeOnSelect
                 defaultValue={selectedLocationId}
-                onChange={(locationId) => {
-                  setSelectedLocationId(locationId || "");
-                  // Location name will be fetched by useEffect
-                }}
+                onChange={(locationId) => setSelectedLocationId(locationId || "")}
                 extraContent={
                   <Button
                     to="/locations/new"
@@ -234,21 +231,18 @@ export function ScanRfidDialog({
                 }
               />
             </div>
-            
-            {/* Action Buttons */}
+
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* Save Bundle Button */}
               {scannedItems.length > 0 && !isStreaming && (
-                <Button 
-                  onClick={handleSaveBundle} 
-                  variant="outline" 
+                <Button
+                  onClick={handleSaveBundle}
+                  variant="outline"
                   className="hover:bg-gray-100 border-gray-300 text-black text-sm w-full sm:w-auto"
                 >
                   Save Bundle ({scannedItems.length} items)
                 </Button>
               )}
-              
-              {/* Start/Stop Scanning Button */}
+
               {isScanning ? (
                 <Button
                   onClick={handleStopScanning}
@@ -261,11 +255,10 @@ export function ScanRfidDialog({
                 <Button
                   onClick={handleStartScanning}
                   disabled={!selectedLocationId}
-                  className={`text-sm w-full sm:w-auto ${
-                    selectedLocationId 
-                      ? "bg-primary-500 hover:bg-primary-600 text-white" 
+                  className={`text-sm w-full sm:w-auto ${selectedLocationId
+                      ? "bg-primary-500 hover:bg-primary-600 text-white"
                       : "bg-gray-300 text-black/70 cursor-not-allowed"
-                  }`}
+                    }`}
                 >
                   Start Scanning
                 </Button>
@@ -273,44 +266,28 @@ export function ScanRfidDialog({
             </div>
           </div>
 
-          {/* {!selectedLocationId && (
-            <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-yellow-800 text-sm">Please select a location before starting reconciliation.</p>
-            </div>
-          )} */}
+          {/* RFID Scanner */}
+          <RfidScanner onTagsScanned={handleTagsScanned} isActive={isScanning} />
 
-          {/* RFID Scanner and Table Section */}
-          <>
-            {/* RFID Scanner Component */}
-            <RfidScanner
-              onTagsScanned={handleTagsScanned}
-              isActive={isScanning}
-            />
-
-            {/* Real-time Asset Reconciliation Table */}
-            <div className="bg-white rounded-sm border flex flex-col min-h-[200px] sm:min-h-[300px] max-h-[400px] mt-4 sm:mt-6">
-              {scannedItems.length === 0 && !isStreaming ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2 p-4">
-                  <p className="text-xs sm:mt-[125px] mt-[70px] sm:text-sm text-center max-w-xl">
-                    {selectedLocationId 
-                      ? "No scanned items yet. Click \"Start Scanning\" to begin reconciliation."
-                      : "Select a location and click \"Start Scanning\" to begin reconciliation."
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-auto flex-1">
-                  <div className="w-full">
-                    <AssetReconciliationTable 
-                      items={scannedItems} 
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
+          {/* Table */}
+          <div className="mt-4 sm:mt-6 border rounded-sm bg-white">
+            {scannedItems.length === 0 && !isStreaming ? (
+              <div className="flex flex-col items-center justify-center text-gray-500 space-y-2 p-6">
+                <p className="text-xs sm:text-sm text-center max-w-xl">
+                  {selectedLocationId
+                    ? 'No scanned items yet. Click "Start Scanning" to begin reconciliation.'
+                    : 'Select a location and click "Start Scanning" to begin reconciliation.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-auto max-h-[300px]">
+                <AssetReconciliationTable items={scannedItems} />
+              </div>
+            )}
+          </div>
         </div>
       </AlertDialogContent>
+
     </AlertDialog>
   );
 }
