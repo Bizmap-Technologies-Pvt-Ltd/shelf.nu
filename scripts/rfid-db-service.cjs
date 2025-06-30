@@ -9,37 +9,31 @@ const { PrismaClient } = require('@prisma/client');
 // Initialize Prisma client
 const db = new PrismaClient();
 
-// Add: Timeout helper for DB queries
-function withTimeout(promise, ms = 5000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('DB query timeout')), ms))
-  ]);
-}
-
 /**
- * Look up an asset by RFID tag (with timeout)
+ * Look up an asset by RFID tag
+ * Simplified version for WebSocket use
  */
 async function getAssetByRfid(rfid, organizationId = 'default-org') {
   try {
     if (!rfid || rfid.trim() === "") {
       return null;
     }
-    const asset = await withTimeout(
-      db.asset.findFirst({
-        where: {
-          rfid: {
-            equals: rfid.trim(),
-            mode: "insensitive"
-          },
+
+    const asset = await db.asset.findFirst({
+      where: {
+        rfid: {
+          equals: rfid.trim(),
+          mode: "insensitive"
         },
-        include: {
-          category: true,
-          location: true,
-        },
-      }),
-      4000
-    );
+        // For development, we'll check all organizations or use a default
+        // In production, this should be properly scoped
+      },
+      include: {
+        category: true,
+        location: true,
+      },
+    });
+
     return asset;
   } catch (error) {
     console.error('[DB] Error looking up asset by RFID:', error);
@@ -48,21 +42,17 @@ async function getAssetByRfid(rfid, organizationId = 'default-org') {
 }
 
 /**
- * Initialize the database connection with retry
+ * Initialize the database connection
  */
-async function initializeDb(retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await db.$connect();
-      console.log('[DB] Database connection established');
-      return true;
-    } catch (error) {
-      console.error(`[DB] Failed to connect (attempt ${i+1}):`, error);
-      if (i === retries - 1) return false;
-      await new Promise(res => setTimeout(res, 1000));
-    }
+async function initializeDb() {
+  try {
+    await db.$connect();
+    console.log('[DB] Database connection established');
+    return true;
+  } catch (error) {
+    console.error('[DB] Failed to connect to database:', error);
+    return false;
   }
-  return false;
 }
 
 /**
