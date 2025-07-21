@@ -25,11 +25,14 @@ async function getAssetByRfid(rfid, organizationId = 'default-org') {
     if (!rfid || rfid.trim() === "") {
       return null;
     }
+    // Normalize RFID tag: trim and convert to uppercase for consistency
+    const normalizedRfid = rfid.trim().toUpperCase();
+    
     const asset = await withTimeout(
       db.asset.findFirst({
         where: {
           rfid: {
-            equals: rfid.trim(),
+            equals: normalizedRfid,
             mode: "insensitive"
           },
         },

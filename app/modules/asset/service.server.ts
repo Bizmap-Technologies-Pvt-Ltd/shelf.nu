@@ -222,6 +222,9 @@ export async function getAssetByRfid<T extends Prisma.AssetInclude | undefined>(
       });
     }
 
+    // Normalize RFID tag: trim and convert to uppercase for consistency
+    const normalizedRfid = rfid.trim().toUpperCase();
+
     const otherOrganizationIds = userOrganizations?.map(
       (org) => org.organizationId
     );
@@ -229,7 +232,7 @@ export async function getAssetByRfid<T extends Prisma.AssetInclude | undefined>(
     const asset = await db.asset.findFirst({
       where: {
         rfid: {
-          equals: rfid.trim(),
+          equals: normalizedRfid,
           mode: "insensitive"
         },
         OR: [
@@ -283,9 +286,9 @@ export async function getAssetsByRfidBatch<T extends Prisma.AssetInclude | undef
       return [];
     }
 
-    // Filter out empty RFID tags and trim whitespace
+    // Filter out empty RFID tags, trim whitespace, and normalize to uppercase
     const validRfidTags = rfidTags
-      .map(tag => tag?.trim())
+      .map(tag => tag?.trim().toUpperCase())
       .filter(tag => tag && tag !== "");
 
     if (validRfidTags.length === 0) {
@@ -361,10 +364,13 @@ export async function checkRfidAvailability({
       });
     }
 
+    // Normalize RFID tag: trim and convert to uppercase for consistency
+    const normalizedRfid = rfid.trim().toUpperCase();
+
     const existingAsset = await db.asset.findFirst({
       where: {
         rfid: {
-          equals: rfid.trim(),
+          equals: normalizedRfid,
           mode: "insensitive"
         },
         organizationId,
@@ -870,7 +876,7 @@ export async function createAsset({
       availableToBook,
       mainImage,
       mainImageExpiration,
-      rfid,
+      rfid: rfid ? rfid.trim().toUpperCase() : rfid, // Normalize RFID tag
     };
 
     /** If a categoryId is passed, link the category to the asset. */
@@ -994,7 +1000,7 @@ export async function updateAsset({
       mainImage,
       mainImageExpiration,
       thumbnailImage,
-      rfid,
+      rfid: rfid ? rfid.trim().toUpperCase() : rfid, // Normalize RFID tag
     };
 
 

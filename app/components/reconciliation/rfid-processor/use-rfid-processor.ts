@@ -61,7 +61,8 @@ export function useRfidProcessor(
     tags.forEach(tag => {
       if (!tag?.trim()) return;
       
-      const cleanTag = tag.trim();
+      // Normalize RFID tag: trim and convert to uppercase for consistency
+      const cleanTag = tag.trim().toUpperCase();
       
       // Validate tag format (basic validation)
       if (cleanTag.length < 2 || cleanTag.length > 100) {

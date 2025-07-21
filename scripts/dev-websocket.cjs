@@ -90,6 +90,10 @@ wss.on('connection', (ws, request) => {
             }));
             return;
           }
+          
+          // Normalize RFID tag: trim and convert to uppercase for consistency
+          const normalizedRfidTag = message.rfidTag.trim().toUpperCase();
+          
           const session = activeSessions.get(message.sessionId);
           if (!session) {
             ws.send(JSON.stringify({
@@ -99,12 +103,12 @@ wss.on('connection', (ws, request) => {
             }));
             return;
           }
-          if (session.tags.has(message.rfidTag)) return;
-          session.tags.add(message.rfidTag);
+          if (session.tags.has(normalizedRfidTag)) return;
+          session.tags.add(normalizedRfidTag);
           let asset = null;
           if (dbReady) {
             try {
-              const foundAsset = await getAssetByRfid(message.rfidTag, session.organizationId);
+              const foundAsset = await getAssetByRfid(normalizedRfidTag, session.organizationId);
               if (foundAsset) {
                 asset = {
                   id: foundAsset.id,
@@ -131,7 +135,7 @@ wss.on('connection', (ws, request) => {
           ws.send(JSON.stringify({
             type: 'RFID_RESULT',
             sessionId: message.sessionId,
-            rfidTag: message.rfidTag,
+            rfidTag: normalizedRfidTag,
             asset,
             timestamp: Date.now()
           }));

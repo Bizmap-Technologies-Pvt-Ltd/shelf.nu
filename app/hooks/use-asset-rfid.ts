@@ -78,7 +78,8 @@ export function useAssetRfid(
     setError(null);
     
     try {
-      const response = await fetch(`/api/assets/rfid?rfid=${encodeURIComponent(rfid.trim())}`);
+      const normalizedRfid = normalizeRfid(rfid);
+      const response = await fetch(`/api/assets/rfid?rfid=${encodeURIComponent(normalizedRfid)}`);
       const result = await response.json();
       
       if (!response.ok) {
@@ -99,7 +100,7 @@ export function useAssetRfid(
       return [];
     }
 
-    // Filter out empty tags
+    // Filter out empty tags and normalize them
     const validTags = rfidTags.filter(tag => tag && tag.trim() !== "");
     if (validTags.length === 0) {
       setBatchError("No valid RFID tags provided");
@@ -111,7 +112,7 @@ export function useAssetRfid(
     try {
       const formData = new FormData();
       formData.append("intent", "batch-lookup");
-      validTags.forEach((tag) => formData.append("rfidTags", tag.trim()));
+      validTags.forEach((tag) => formData.append("rfidTags", normalizeRfid(tag)));
 
       const response = await fetch("/api/assets/rfid", {
         method: "POST",
@@ -152,8 +153,9 @@ export function useAssetRfid(
     setAvailabilityError(null);
     
     try {
+      const normalizedRfid = normalizeRfid(rfid);
       const params = new URLSearchParams({
-        rfid: rfid.trim(),
+        rfid: normalizedRfid,
         action: "check-availability",
       });
       
