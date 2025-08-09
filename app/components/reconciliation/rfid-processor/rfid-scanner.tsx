@@ -1,7 +1,6 @@
 import { Button } from "~/components/shared/button";
 import { useRfidProcessor, useDummyRfid, type RfidTag, RFID_CONFIG } from ".";
 import { useCallback, useRef, useEffect, useState } from "react";
-import { delay } from "lodash";
 import React from "react";
 
 // Default values for removed config options
@@ -108,14 +107,45 @@ export function RfidScanner({
   const focusActiveField = useCallback(() => {
     if (RFID_CONFIG.ENABLE_DUMMY_DATA) return; // Don't focus if dummy data is enabled
     
+    // Ensure currentIndex is valid
+    if (currentIndexRef.current >= inputFieldsRef.current.length) {
+      currentIndexRef.current = 0;
+    }
+    
     const activeInput = inputFieldsRef.current[currentIndexRef.current] as HTMLTextAreaElement;
-    if (activeInput && activeInput.classList.contains('active')) {
-      // Force visibility and enable the input
+    if (activeInput) {
+      // Ensure field is marked as active
+      if (!activeInput.classList.contains('active')) {
+        inputFieldsRef.current.forEach(f => f.classList.remove('active'));
+        activeInput.classList.add('active');
+      }
+      
+      // Force visibility and enable the input - works for both visible and hidden modes
       activeInput.style.pointerEvents = 'auto';
       activeInput.style.display = 'block';
+      activeInput.style.visibility = 'visible';
       activeInput.disabled = false;
       activeInput.readOnly = false;
       activeInput.tabIndex = 0;
+      
+      // For hidden UI mode, position off-screen but keep focusable
+      if (!RFID_CONFIG.SHOW_RFID_SCANNER) {
+        activeInput.style.position = "absolute";
+        activeInput.style.left = "0";
+        activeInput.style.top = "0";
+        activeInput.style.width = "1px";
+        activeInput.style.height = "1px";
+        activeInput.style.opacity = "0";
+        activeInput.style.zIndex = "-1";
+      } else {
+        activeInput.style.position = "static";
+        activeInput.style.left = "auto";
+        activeInput.style.top = "auto";
+        activeInput.style.width = "100%";
+        activeInput.style.height = "80px";
+        activeInput.style.opacity = "1";
+        activeInput.style.zIndex = "auto";
+      }
       
       // Remove focus from any other elements first
       if (document.activeElement && document.activeElement !== activeInput) {
@@ -137,15 +167,15 @@ export function RfidScanner({
             setTimeout(() => attemptFocus(attempt + 1), 50 * attempt);
           }
         } catch (error) {
-          // Focus attempt failed
+          // Focus attempt failed - continue anyway
         }
       };
       
-      // Start focus attempts
+      // Start focus attempts immediately and with retries
       attemptFocus(1);
       
     } else {
-      // Cannot focus - Active input not found or not active
+      // Cannot focus - Active input not found, will be handled by initialization
     }
   }, []);
 
@@ -156,15 +186,81 @@ export function RfidScanner({
         if (isActive) {
           // When scanning is active, only show the active field
           if (index === currentIndexRef.current && field.classList.contains('active')) {
+            // For hidden UI mode, keep fields focusable but invisible
+            if (!RFID_CONFIG.SHOW_RFID_SCANNER) {
+              field.style.position = "absolute";
+              field.style.left = "0";
+              field.style.top = "0";
+              field.style.width = "1px";
+              field.style.height = "1px";
+              field.style.opacity = "0";
+              field.style.pointerEvents = "auto";
+              field.style.zIndex = "-1";
+            } else {
+              field.style.position = "static";
+              field.style.left = "auto";
+              field.style.top = "auto";
+              field.style.width = "100%";
+              field.style.height = "80px";
+              field.style.opacity = "1";
+              field.style.zIndex = "auto";
+            }
             field.style.display = "block";
+            field.style.visibility = "visible";
+            field.style.pointerEvents = "auto";
           } else {
             field.style.display = "none";
           }
         } else {
-          // When scanning is not active, show all fields
-          field.style.display = "block";
+          // When scanning is not active, show all fields (or hide if UI is hidden)
+          if (!RFID_CONFIG.SHOW_RFID_SCANNER) {
+            field.style.display = "none";
+          } else {
+            field.style.display = "block";
+            field.style.visibility = "visible";
+            field.style.opacity = "1";
+            field.style.pointerEvents = "auto";
+            field.style.position = "static";
+            field.style.width = "100%";
+            field.style.height = "80px";
+          }
         }
       });
+      
+      // Ensure we have at least one active field when scanning starts
+      if (isActive && inputFieldsRef.current.length > 0) {
+        const activeField = inputFieldsRef.current[currentIndexRef.current];
+        if (activeField && !activeField.classList.contains('active')) {
+          // Reset current field to active if it's not active
+          inputFieldsRef.current.forEach(f => f.classList.remove('active'));
+          activeField.classList.add('active');
+          
+          // Apply appropriate styling based on UI visibility
+          if (!RFID_CONFIG.SHOW_RFID_SCANNER) {
+            activeField.style.position = "absolute";
+            activeField.style.left = "0";
+            activeField.style.top = "0";
+            activeField.style.width = "1px";
+            activeField.style.height = "1px";
+            activeField.style.opacity = "0";
+            activeField.style.zIndex = "-1";
+          } else {
+            activeField.style.position = "static";
+            activeField.style.width = "100%";
+            activeField.style.height = "80px";
+            activeField.style.opacity = "1";
+            activeField.style.zIndex = "auto";
+          }
+          
+          activeField.style.display = "block";
+          activeField.style.visibility = "visible";
+          activeField.style.pointerEvents = "auto";
+          
+          // Clear any processing flags that might prevent reactivation
+          activeField.dataset.processing = "false";
+          activeField.dataset.processed = "false";
+        }
+      }
     }
   }, [isActive]);
 
@@ -207,7 +303,7 @@ export function RfidScanner({
 
     try {
       const index = inputFieldsRef.current.length + 1;
-      const input = document.createElement("textarea") as any; // Cast to handle both input and textarea
+      const input = document.createElement("textarea");
       input.readOnly = RFID_CONFIG.ENABLE_DUMMY_DATA; // Allow manual input when dummy data is disabled
       
       // Style the input field - make it visible for manual input
@@ -546,22 +642,69 @@ export function RfidScanner({
     setTimeout(updateFieldVisibility, 200);
     
     return () => {
-      // Cleanup
+      // Only cleanup on actual component unmount, not on stop/start cycles
       if (monitorIntervalRef.current) {
         clearInterval(monitorIntervalRef.current);
+        monitorIntervalRef.current = undefined;
       }
+      // Only remove DOM elements on component unmount
+      inputFieldsRef.current.forEach(input => {
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
+        }
+      });
+      inputFieldsRef.current = [];
     };
   }, [createInputField, updateLiveLog, focusActiveField, updateFieldVisibility]);
 
   // Start/stop monitoring
   useEffect(() => {
     if (isActive) {
+      // Ensure we have at least one input field when starting
+      if (inputFieldsRef.current.length === 0) {
+        createInputField();
+        // Wait for field creation before continuing
+        setTimeout(() => {
+          updateFieldVisibility();
+          focusActiveField();
+        }, 100);
+      } else {
+        // Reset the current field index if it's out of bounds
+        if (currentIndexRef.current >= inputFieldsRef.current.length) {
+          currentIndexRef.current = 0;
+        }
+        
+        // Ensure the current field is properly set as active and reset
+        const currentField = inputFieldsRef.current[currentIndexRef.current];
+        if (currentField) {
+          // Clear all active states first
+          inputFieldsRef.current.forEach(f => {
+            f.classList.remove('active');
+            f.dataset.processing = "false";
+            f.dataset.processed = "false";
+          });
+          
+          // Set current field as active and reset its state
+          currentField.classList.add('active');
+          currentField.style.display = 'block';
+          currentField.style.visibility = 'visible';
+          currentField.style.opacity = '1';
+          currentField.style.pointerEvents = 'auto';
+          currentField.disabled = false;
+          currentField.readOnly = false;
+          currentField.dataset.processing = "false";
+          currentField.dataset.processed = "false";
+          currentField.dataset.startTime = Date.now().toString();
+        }
+      }
+      
       monitorIntervalRef.current = setInterval(monitorActiveField, RFID_CONFIG.MONITOR_INTERVAL);
       updateLiveLog({
         lastAction: "Monitoring started",
         fieldStatus: "Active monitoring"
       });
-      // Immediately focus the active field when scanning starts
+      
+      // Multiple attempts to ensure field visibility and focus
       updateFieldVisibility();
       focusActiveField();
       setTimeout(() => {
@@ -585,16 +728,17 @@ export function RfidScanner({
           fieldStatus: "Stopped"
         });
       }
-      // Show all fields when scanning stops
+      // Show all fields when scanning stops but don't clear them
       setTimeout(updateFieldVisibility, 100);
     }
 
     return () => {
       if (monitorIntervalRef.current) {
         clearInterval(monitorIntervalRef.current);
+        monitorIntervalRef.current = undefined;
       }
     };
-  }, [isActive, monitorActiveField, updateLiveLog, focusActiveField, updateFieldVisibility]);
+  }, [isActive, monitorActiveField, updateLiveLog, focusActiveField, updateFieldVisibility, createInputField]);
 
   // Update field visibility when scanning state changes
   useEffect(() => {
@@ -680,9 +824,9 @@ export function RfidScanner({
     }
   }, [isActive, focusActiveField, updateFieldVisibility]);
 
-  // Update visible fields periodically (only if UI is visible)
+  // Update visible fields periodically (continue even if UI is hidden for processing)
   useEffect(() => {
-    if (SHOW_INPUT_FIELDS && RFID_CONFIG.SHOW_RFID_SCANNER && isActive) {
+    if (SHOW_INPUT_FIELDS && isActive) {
       const fieldUpdateInterval = setInterval(updateVisibleFields, 500); // Update every 500ms
       return () => clearInterval(fieldUpdateInterval);
     }
@@ -751,9 +895,15 @@ export function RfidScanner({
   // Check if RFID scanner UI should be shown
   if (!RFID_CONFIG.SHOW_RFID_SCANNER) {
     return (
-      <div style={{ display: "none" }}>
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden' }}>
         {/* Hidden input container for RFID reader compatibility - still needed for processing */}
-        <div ref={inputContainerRef} />
+        {/* Keep input fields focusable by positioning off-screen instead of display:none */}
+        <div ref={inputContainerRef} style={{ 
+          position: 'relative',
+          width: '1px', 
+          height: '1px',
+          overflow: 'hidden'
+        }} />
       </div>
     );
   }
@@ -983,16 +1133,32 @@ export class RfidScannerErrorBoundary extends React.Component<{
     super(props);
     this.state = { hasError: false };
   }
+  
   static getDerivedStateFromError(error: any) {
     return { hasError: true, error };
   }
+  
   componentDidCatch(error: any, info: any) {
     // Log error to remote if needed
     console.error('[RFID Scanner ErrorBoundary]', error, info);
   }
+  
   render() {
     if (this.state.hasError) {
-      return <div className="p-4 text-red-600 bg-red-50 rounded">RFID Scanner crashed: {String(this.state.error)}</div>;
+      return (
+        <div className="p-4 text-red-600 bg-red-50 rounded border border-red-200">
+          <h3 className="font-semibold mb-2">RFID Scanner Error</h3>
+          <p className="text-sm mb-2">
+            The RFID scanner encountered an error: {String(this.state.error?.message || this.state.error)}
+          </p>
+          <button 
+            onClick={() => this.setState({ hasError: false, error: undefined })}
+            className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      );
     }
     return this.props.children;
   }

@@ -17,7 +17,7 @@ export const RFID_CONFIG = {
   MAX_TAGS_PER_FIELD: 50,
   
   /** Maximum time (ms) per input field before switching */
-  MAX_TIME_PER_FIELD: 3000, // 2 seconds
+  MAX_TIME_PER_FIELD: 3000, // 3 seconds
 
   /** Tag separators used by dummy generator */
   TAG_SEPARATORS: [",", " "],
@@ -63,8 +63,26 @@ DUMMY_TAGS: [
 
 // Helper function to get configuration with environment overrides
 export function getRfidConfig() {
-  return {
+  const config = {
     ...RFID_CONFIG,
     // Add environment-specific overrides here if needed
   };
+  
+  // Validate configuration values
+  if (config.MAX_TAGS_PER_FIELD <= 0) {
+    console.warn('RFID_CONFIG.MAX_TAGS_PER_FIELD must be positive, using default: 50');
+    config.MAX_TAGS_PER_FIELD = 50;
+  }
+  
+  if (config.MAX_TIME_PER_FIELD <= 0) {
+    console.warn('RFID_CONFIG.MAX_TIME_PER_FIELD must be positive, using default: 3000');
+    config.MAX_TIME_PER_FIELD = 3000;
+  }
+  
+  if (config.MONITOR_INTERVAL <= 0) {
+    console.warn('RFID_CONFIG.MONITOR_INTERVAL must be positive, using default: 200');
+    config.MONITOR_INTERVAL = 200;
+  }
+  
+  return config;
 }
