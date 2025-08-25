@@ -22,6 +22,11 @@ export const RFID_CONFIG = {
   /** Tag separators used by dummy generator */
   TAG_SEPARATORS: [",", " "],
   
+  // ===== MOBILE/RFID SCANNER DEVICE CONFIGURATION =====
+  
+  /** Prevent virtual keyboard on mobile/RFID scanner devices */
+  PREVENT_VIRTUAL_KEYBOARD: true, // Set to true to prevent on-screen keyboard
+  
   // ===== TIMING =====
 
   /** Interval (ms) for monitoring active field */
@@ -30,7 +35,7 @@ export const RFID_CONFIG = {
   // ===== DUMMY DATA =====
   
   /** Enable/disable dummy RFID data generation */
-  ENABLE_DUMMY_DATA: false, // Set to false to disable dummy data generation completely
+  ENABLE_DUMMY_DATA: true, // Set to false to disable dummy data generation completely
   
   /** Interval (ms) for generating dummy RFID data */
   DUMMY_GENERATION_INTERVAL: 500, // 300ms
@@ -61,11 +66,29 @@ DUMMY_TAGS: [
 ],
 } as const;
 
+// Utility function to detect mobile/Android devices
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+  const isAndroid = /android/i.test(userAgent);
+  
+  return isMobile || isAndroid;
+}
+
+// Utility function to check if virtual keyboard should be prevented
+function shouldPreventVirtualKeyboard(): boolean {
+  return RFID_CONFIG.PREVENT_VIRTUAL_KEYBOARD && isMobileDevice();
+}
+
 // Helper function to get configuration with environment overrides
 export function getRfidConfig() {
   const config = {
     ...RFID_CONFIG,
     // Add environment-specific overrides here if needed
+    _isMobileDevice: isMobileDevice(),
+    _shouldPreventVirtualKeyboard: shouldPreventVirtualKeyboard(),
   };
   
   // Validate configuration values
@@ -86,3 +109,6 @@ export function getRfidConfig() {
   
   return config;
 }
+
+// Export utility functions for mobile device detection
+export { isMobileDevice, shouldPreventVirtualKeyboard };

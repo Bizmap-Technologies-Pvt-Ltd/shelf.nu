@@ -1,5 +1,5 @@
 import { Button } from "~/components/shared/button";
-import { useRfidProcessor, useDummyRfid, type RfidTag, RFID_CONFIG } from ".";
+import { useRfidProcessor, useDummyRfid, type RfidTag, RFID_CONFIG, shouldPreventVirtualKeyboard } from ".";
 import { useCallback, useRef, useEffect, useState } from "react";
 import React from "react";
 
@@ -306,6 +306,17 @@ export function RfidScanner({
       const input = document.createElement("textarea");
       input.readOnly = RFID_CONFIG.ENABLE_DUMMY_DATA; // Allow manual input when dummy data is disabled
       
+      // Prevent virtual keyboard on mobile/RFID scanner devices
+      if (shouldPreventVirtualKeyboard()) {
+        input.readOnly = true; // Make readonly to prevent keyboard
+        input.setAttribute('inputmode', 'none'); // Prevent virtual keyboard
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('autocapitalize', 'off');
+        input.setAttribute('autocorrect', 'off');
+        input.setAttribute('spellcheck', 'false');
+        input.style.caretColor = 'transparent'; // Hide cursor
+      }
+      
       // Style the input field - make it visible for manual input
       if (!RFID_CONFIG.ENABLE_DUMMY_DATA) {
         // Make input visible and properly positioned for manual typing
@@ -323,7 +334,13 @@ export function RfidScanner({
         input.style.display = "block";
         input.style.resize = "vertical";
         input.style.fontFamily = "monospace"; // Use monospace for better readability
-        input.placeholder = "Type RFID tags separated by commas, spaces, or new lines (press Enter for new line)...";
+        
+        // Set placeholder based on device type
+        if (shouldPreventVirtualKeyboard()) {
+          input.placeholder = "RFID scanner ready - scan tags with your device";
+        } else {
+          input.placeholder = "Type RFID tags separated by commas, spaces, or new lines (press Enter for new line)...";
+        }
       } else {
         input.style.display = "none"; // Completely hidden for dummy data mode
       }

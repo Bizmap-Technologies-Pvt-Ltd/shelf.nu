@@ -4,7 +4,9 @@ export { useStreamingRfidProcessor } from "./use-streaming-rfid-processor";
 export { RfidScanner } from "./rfid-scanner";
 export { 
   RFID_CONFIG, 
-  getRfidConfig
+  getRfidConfig,
+  isMobileDevice,
+  shouldPreventVirtualKeyboard
 } from "./config";
 export type { 
   RfidProcessorStats, 
